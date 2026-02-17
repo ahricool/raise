@@ -90,7 +90,7 @@ class ConfigManager:
             return list(mutable_updates.keys()), skipped_masked, self.get_config_version()
 
     def _atomic_upsert(self, updates: Dict[str, str]) -> None:
-        """Write updates with temp file + fsync + rename strategy."""
+        """Write updates with direct write + fsync strategy."""
         lines = self._read_lines()
         key_to_index = self._find_last_key_indexes(lines)
 
@@ -105,17 +105,14 @@ class ConfigManager:
         if not self._env_path.parent.exists():
             self._env_path.parent.mkdir(parents=True, exist_ok=True)
 
-        temp_path = self._env_path.with_suffix(self._env_path.suffix + ".tmp")
         content = "\n".join(lines)
         if content and not content.endswith("\n"):
             content += "\n"
 
-        with temp_path.open("w", encoding="utf-8", newline="\n") as file_obj:
+        with self._env_path.open("w", encoding="utf-8", newline="\n") as file_obj:
             file_obj.write(content)
             file_obj.flush()
             os.fsync(file_obj.fileno())
-
-        os.replace(temp_path, self._env_path)
 
     def _read_lines(self) -> List[str]:
         if not self._env_path.exists():
