@@ -28,6 +28,9 @@ x-common: &common
   environment:
     - TZ=Asia/Shanghai
 
+    # Database (PostgreSQL)
+    - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/stock_analysis
+
     # Web/API service bind address (must be 0.0.0.0 inside container)
     - WEBUI_HOST=0.0.0.0
     # API_PORT 从 .env 文件读取，无需在此硬编码
@@ -50,10 +53,29 @@ x-common: &common
 
 services:
 
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stock_analysis
+      - TZ=Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   # FastAPI 模式
   server:
     <<: *common
     container_name: server
+    depends_on:
+      - postgres
     command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
+
+volumes:
+  postgres_data:
