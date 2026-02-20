@@ -202,6 +202,10 @@ python main.py
 
 > 📖 完整环境变量、定时任务配置请参考 [完整配置指南](docs/full-guide.md)
 
+数据库默认使用 SQLite（`DATABASE_PATH`）。如需切换到 PostgreSQL，请配置 `DATABASE_URL`
+（例如 `postgresql+psycopg://postgres:postgres@localhost:5432/stock_analysis`），
+该值会优先于 SQLite 配置。
+
 
 ## 🖥️ Web 界面
 
