@@ -139,6 +139,7 @@ class Config:
     wechat_msg_type: str = "markdown"  # 企业微信消息类型，默认 markdown 类型
     
     # === 数据库配置 ===
+    database_url: Optional[str] = None
     database_path: str = "./data/stock_analysis.db"
 
     # 是否保存分析上下文快照（用于历史回溯）
@@ -387,6 +388,7 @@ class Config:
             feishu_max_bytes=int(os.getenv('FEISHU_MAX_BYTES', '20000')),
             wechat_max_bytes=wechat_max_bytes,
             wechat_msg_type=wechat_msg_type_lower,
+            database_url=os.getenv('DATABASE_URL'),
             database_path=os.getenv('DATABASE_PATH', './data/stock_analysis.db'),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',
@@ -557,6 +559,10 @@ class Config:
         
         自动创建数据库目录（如果不存在）
         """
+        database_url = (self.database_url or "").strip()
+        if database_url:
+            return database_url
+
         db_path = Path(self.database_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{db_path.absolute()}"

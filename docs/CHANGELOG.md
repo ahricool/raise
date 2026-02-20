@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [3.0.6] - 2026-02-17
+
+### 新增
+- 🐘 支持 PostgreSQL 作为存储后端（`DATABASE_URL` 优先级高于 SQLite）
+- 🐳 Docker Compose 增加 PostgreSQL 容器与持久化卷
+
 ## [3.0.5] - 2026-02-08
 
 ### 修复

@@ -70,6 +70,7 @@ services:
   # FastAPI 模式
   server:
     <<: *common
+    image: raise-server:${env_version:-latest}
     container_name: server
     depends_on:
       - postgres
