@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from api.v1 import api_v1_router
+from api.bot_webhook import router as bot_webhook_router
 from api.middlewares.error_handler import add_error_handlers
 from api.v1.schemas.common import RootResponse, HealthResponse
 from src.config import get_config
@@ -119,6 +120,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     # ============================================================
     
     app.include_router(api_v1_router)
+    app.include_router(bot_webhook_router)
     add_error_handlers(app)
     
     # ============================================================
