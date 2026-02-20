@@ -1,29 +1,18 @@
-interface ValidationResult {
-  valid: boolean;
-  message?: string;
-  normalized: string;
-}
+const A_STOCK_RE = /^\d{6}$/
+const A_STOCK_PREFIX_RE = /^(SH|SZ)\d{6}$/i
+const HK_STOCK_RE = /^(hk)?\d{5}$/i
+const US_STOCK_RE = /^[A-Za-z]{1,6}(\.[A-Za-z]{1,2})?$/
 
-// 兼容 A/H/美股常见代码格式的基础校验
-export const validateStockCode = (value: string): ValidationResult => {
-  const normalized = value.trim().toUpperCase();
-
-  if (!normalized) {
-    return { valid: false, message: '请输入股票代码', normalized };
+export function validateStockCode(value: string): string | null {
+  const v = value.trim().toUpperCase()
+  if (!v) return '请输入股票代码'
+  if (
+    A_STOCK_RE.test(v) ||
+    A_STOCK_PREFIX_RE.test(v) ||
+    HK_STOCK_RE.test(v) ||
+    US_STOCK_RE.test(v)
+  ) {
+    return null
   }
-
-  const patterns = [
-    /^\d{6}$/, // A 股 6 位数字
-    /^(SH|SZ)\d{6}$/, // A 股带交易所前缀
-    /^\d{5}$/, // 港股 5 位数字
-    /^[A-Z]{1,6}(\.[A-Z]{1,2})?$/, // 美股常见 Ticker
-  ];
-
-  const valid = patterns.some((regex) => regex.test(normalized));
-
-  return {
-    valid,
-    message: valid ? undefined : '股票代码格式不正确',
-    normalized,
-  };
-};
+  return '股票代码格式不正确'
+}

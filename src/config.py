@@ -140,7 +140,7 @@ class Config:
     
     # === 数据库配置 ===
     database_url: Optional[str] = None
-    database_path: str = "./data/stock_analysis.db"
+    database_path: str = "./data/raise.db"
 
     # 是否保存分析上下文快照（用于历史回溯）
     save_context_snapshot: bool = True
@@ -389,7 +389,7 @@ class Config:
             wechat_max_bytes=wechat_max_bytes,
             wechat_msg_type=wechat_msg_type_lower,
             database_url=os.getenv('DATABASE_URL'),
-            database_path=os.getenv('DATABASE_PATH', './data/stock_analysis.db'),
+            database_path=os.getenv('DATABASE_PATH', './data/raise.db'),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',
             backtest_eval_window_days=int(os.getenv('BACKTEST_EVAL_WINDOW_DAYS', '10')),

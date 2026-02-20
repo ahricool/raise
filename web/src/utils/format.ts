@@ -1,45 +1,31 @@
-export const formatDateTime = (value?: string): string => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+export function formatDateTime(value: string | Date): string {
+  const d = value instanceof Date ? value : new Date(value)
+  return d.toLocaleString('zh-CN', { hour12: false })
+}
 
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-};
+export function formatDate(value: string | Date): string {
+  const d = value instanceof Date ? value : new Date(value)
+  return d.toLocaleDateString('zh-CN')
+}
 
-export const formatDate = (value?: string): string => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+export function toDateInputValue(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
 
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
-};
+export function getRecentStartDate(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return toDateInputValue(d)
+}
 
-export const toDateInputValue = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+export function formatReportType(value?: string): string {
+  if (value === 'simple') return '普通'
+  if (value === 'detailed') return '标准'
+  return value || ''
+}
 
-export const getRecentStartDate = (days: number): string => {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return toDateInputValue(date);
-};
-
-export const formatReportType = (value?: string): string => {
-  if (!value) return '—';
-  if (value === 'simple') return '普通';
-  if (value === 'detailed') return '标准';
-  return value;
-};
+export function formatPct(value?: number | null, decimals = 2): string {
+  if (value == null) return '-'
+  const sign = value >= 0 ? '+' : ''
+  return `${sign}${value.toFixed(decimals)}%`
+}

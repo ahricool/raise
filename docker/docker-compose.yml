@@ -1,61 +1,19 @@
 # ===================================
 # A股自选股智能分析系统 - Docker Compose
 # ===================================
-# 
-# 使用方式:
-#   定时模式: docker-compose -f ./docker/docker-compose.yml up -d
-#   FastAPI模式: docker-compose -f ./docker/docker-compose.yml up -d server
-#   同时启动: docker-compose -f ./docker/docker-compose.yml up -d analyzer server
-
-x-common: &common
-  build:
-    context: ..
-    dockerfile: docker/Dockerfile
-  restart: unless-stopped
-
-  # 环境变量（从 .env 文件加载）
-  env_file:
-    - ../.env
-
-  volumes:
-    - ../data:/workspace/data
-    - ../logs:/workspace/logs
-    - ../reports:/workspace/reports
-    - ../.env:/workspace/.env
-    # 如需覆盖前端静态资源，可挂载本地 static 目录
-    - ../static:/workspace/static:ro
-
-  environment:
-    - TZ=Asia/Shanghai
-
-    # Database (PostgreSQL)
-    - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/stock_analysis
-
-    # Web/API service bind address (must be 0.0.0.0 inside container)
-    - WEBUI_HOST=0.0.0.0
-    # API_PORT 从 .env 文件读取，无需在此硬编码
-
-    # 代理设置（如果需要）
-    # - http_proxy=http://host.docker.internal:10809
-    # - https_proxy=http://host.docker.internal:10809
-  logging:
-    driver: "json-file"
-    options:
-      max-size: "10m"
-      max-file: "3"
-  # 资源限制
-  deploy:
-    resources:
-      limits:
-        memory: 512M
-      reservations:
-        memory: 256M
+#
+# 启动:
+#   docker-compose -f docker/docker-compose.yml up -d
+#
+# 仅后端:
+#   docker-compose -f docker/docker-compose.yml up -d server
 
 services:
 
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
   postgres:
     image: postgres:16
-    container_name: postgres
+    container_name: raise-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -66,17 +24,47 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stock_analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # FastAPI 模式
+  # ── Python Backend + 内嵌前端 ────────────────────────────────────────────
   server:
-    <<: *common
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     image: raise-server:${env_version:-latest}
-    container_name: server
+    container_name: raise-server
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      - TZ=Asia/Shanghai
+      - WEBUI_HOST=0.0.0.0
+    volumes:
+      - ../data:/workspace/data
+      - ../logs:/workspace/logs
+      - ../reports:/workspace/reports
+      - ../.env:/workspace/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
 volumes:
   postgres_data:
