@@ -57,6 +57,43 @@ if TYPE_CHECKING:
 
 # === 数据模型定义 ===
 
+class User(Base):
+    """Registered user model."""
+
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(64), nullable=False)
+    email = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('username', name='uix_user_username'),
+        UniqueConstraint('email', name='uix_user_email'),
+        Index('ix_user_username', 'username'),
+        Index('ix_user_email', 'email'),
+    )
+
+
+class UserStock(Base):
+    """User stock subscription model."""
+
+    __tablename__ = 'user_stock'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    stock_code = Column(String(10), nullable=False)
+    stock_name = Column(String(50), nullable=True)   # cached name to avoid repeated lookups
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'stock_code', name='uix_user_stock_user_code'),
+        Index('ix_user_stock_code', 'stock_code'),
+    )
+
 class StockDaily(Base):
     """
     股票日线数据模型

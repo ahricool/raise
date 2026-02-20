@@ -1,146 +1,60 @@
-import apiClient from './index';
-import { toCamelCase } from './utils';
+import http from './http'
 import type {
   AnalysisRequest,
-  AnalysisResult,
   AnalysisReport,
   TaskStatus,
   TaskListResponse,
-} from '../types/analysis';
+} from '@/types/analysis'
+import { API_BASE_URL } from '@/utils/constants'
 
-// ============ API 接口 ============
+export class DuplicateTaskError extends Error {
+  constructor(
+    public stockCode: string,
+    public existingTaskId: string,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'DuplicateTaskError'
+  }
+}
 
 export const analysisApi = {
-  /**
-   * 触发股票分析
-   * @param data 分析请求参数
-   * @returns 同步模式返回 AnalysisResult，异步模式返回 TaskAccepted（需检查 status code）
-   */
-  analyze: async (data: AnalysisRequest): Promise<AnalysisResult> => {
-    const requestData = {
-      stock_code: data.stockCode,
-      report_type: data.reportType || 'detailed',
-      force_refresh: data.forceRefresh || false,
-      async_mode: data.asyncMode || false,
-    };
-
-    const response = await apiClient.post<Record<string, unknown>>(
-      '/api/v1/analysis/analyze',
-      requestData
-    );
-
-    const result = toCamelCase<AnalysisResult>(response.data);
-
-    // 确保 report 字段正确转换
-    if (result.report) {
-      result.report = toCamelCase<AnalysisReport>(result.report);
-    }
-
-    return result;
-  },
-
-  /**
-   * 异步模式触发分析
-   * 返回 task_id，通过 SSE 或轮询获取结果
-   * @param data 分析请求参数
-   * @returns 任务接受响应或抛出 409 错误
-   */
-  analyzeAsync: async (data: AnalysisRequest): Promise<{ taskId: string; status: string; message?: string }> => {
-    const requestData = {
-      stock_code: data.stockCode,
-      report_type: data.reportType || 'detailed',
-      force_refresh: data.forceRefresh || false,
-      async_mode: true,
-    };
-
-    const response = await apiClient.post<Record<string, unknown>>(
-      '/api/v1/analysis/analyze',
-      requestData,
-      {
-        // 允许 202 状态码
-        validateStatus: (status) => status === 200 || status === 202 || status === 409,
+  async analyzeAsync(data: AnalysisRequest): Promise<{ taskId: string; status: string; message: string }> {
+    try {
+      const res = await http.post('/api/v1/analysis/analyze', {
+        ...data,
+        async_mode: true,
+      })
+      return res.data
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'response' in err &&
+        (err as { response: { status: number; data: { taskId: string; stockCode: string } } }).response?.status === 409
+      ) {
+        const e = err as { response: { data: { taskId: string; stockCode: string; message: string } } }
+        throw new DuplicateTaskError(
+          e.response.data.stockCode ?? data.stockCode,
+          e.response.data.taskId ?? '',
+          e.response.data.message ?? '任务已在进行中',
+        )
       }
-    );
-
-    // 处理 409 重复提交错误
-    if (response.status === 409) {
-      const errorData = toCamelCase<{
-        error: string;
-        message: string;
-        stockCode: string;
-        existingTaskId: string;
-      }>(response.data);
-      throw new DuplicateTaskError(errorData.stockCode, errorData.existingTaskId, errorData.message);
+      throw err
     }
-
-    return toCamelCase<{ taskId: string; status: string; message?: string }>(response.data);
   },
 
-  /**
-   * 获取异步任务状态
-   * @param taskId 任务 ID
-   */
-  getStatus: async (taskId: string): Promise<TaskStatus> => {
-    const response = await apiClient.get<Record<string, unknown>>(
-      `/api/v1/analysis/status/${taskId}`
-    );
-
-    const data = toCamelCase<TaskStatus>(response.data);
-
-    // 确保嵌套的 result 也被正确转换
-    if (data.result) {
-      data.result = toCamelCase<AnalysisResult>(data.result);
-      if (data.result.report) {
-        data.result.report = toCamelCase<AnalysisReport>(data.result.report);
-      }
-    }
-
-    return data;
+  async getStatus(taskId: string): Promise<TaskStatus> {
+    const res = await http.get(`/api/v1/analysis/status/${taskId}`)
+    return res.data
   },
 
-  /**
-   * 获取任务列表
-   * @param params 筛选参数
-   */
-  getTasks: async (params?: {
-    status?: string;
-    limit?: number;
-  }): Promise<TaskListResponse> => {
-    const response = await apiClient.get<Record<string, unknown>>(
-      '/api/v1/analysis/tasks',
-      { params }
-    );
-
-    const data = toCamelCase<TaskListResponse>(response.data);
-
-    return data;
+  async getTasks(params?: { status?: string; limit?: number }): Promise<TaskListResponse> {
+    const res = await http.get('/api/v1/analysis/tasks', { params })
+    return res.data
   },
 
-  /**
-   * 获取 SSE 流 URL
-   * 用于 EventSource 连接
-   */
-  getTaskStreamUrl: (): string => {
-    // 获取 API base URL
-    const baseUrl = apiClient.defaults.baseURL || '';
-    return `${baseUrl}/api/v1/analysis/tasks/stream`;
+  getTaskStreamUrl(): string {
+    return `${API_BASE_URL}/api/v1/analysis/tasks/stream`
   },
-};
-
-// ============ 自定义错误类 ============
-
-/**
- * 重复任务错误
- * 当股票正在分析中时抛出
- */
-export class DuplicateTaskError extends Error {
-  stockCode: string;
-  existingTaskId: string;
-
-  constructor(stockCode: string, existingTaskId: string, message?: string) {
-    super(message || `股票 ${stockCode} 正在分析中`);
-    this.name = 'DuplicateTaskError';
-    this.stockCode = stockCode;
-    this.existingTaskId = existingTaskId;
-  }
 }

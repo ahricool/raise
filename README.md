@@ -206,6 +206,8 @@ python main.py
 （例如 `postgresql+psycopg://postgres:postgres@localhost:5432/stock_analysis`），
 该值会优先于 SQLite 配置。
 
+当前内置核心表包括：`users`（注册用户）和 `user_stock`（用户订阅股票关系）等。
+
 
 ## 🖥️ Web 界面
 

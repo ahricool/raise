@@ -3,72 +3,69 @@
 # ===================================
 # 多阶段构建：前端打包 + 后端运行
 
+# ── Stage 1: Build Vue 3 frontend ──────────────────────────────────────────
 FROM node:20-slim AS web-builder
 
 WORKDIR /workspace/web
 
+# Install deps first (layer cache friendly)
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 
+# Copy source and build → outputs to /workspace/static
 COPY web ./
 RUN npm run build
 
+# ── Stage 2: Python runtime ────────────────────────────────────────────────
 FROM python:3.12-slim
 
-# 设置工作目录
 WORKDIR /workspace
 
-# 设置时区为上海
+# Timezone
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# 复制 uv 二进制文件
+# uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-# 设置 UV 环境变量
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-# 安装系统依赖
+# System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Python 依赖
+# Python deps (cached layer)
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync 
+    uv sync
 
-# 复制应用代码
+# Application code
 COPY *.py ./
 COPY api/ ./api/
 COPY data_provider/ ./data_provider/
 COPY bot/ ./bot/
 COPY src/ ./src/
+
+# Copy built frontend
 COPY --from=web-builder /workspace/static ./static/
 
-# 创建数据目录
+# Runtime dirs
 RUN mkdir -p /workspace/data /workspace/logs /workspace/reports
 
-# 设置环境变量默认值
-ENV PYTHONUNBUFFERED=1
-ENV LOG_DIR=/workspace/logs
-ENV DATABASE_PATH=/workspace/data/stock_analysis.db
-# Web/API service
-ENV WEBUI_HOST=0.0.0.0
-ENV API_PORT=8000
+ENV PYTHONUNBUFFERED=1 \
+    LOG_DIR=/workspace/logs \
+    DATABASE_PATH=/workspace/data/stock_analysis.db \
+    WEBUI_HOST=0.0.0.0 \
+    API_PORT=8000
 
-# 暴露 API 端口
 EXPOSE 8000
 
-# 数据卷（持久化数据）
 VOLUME ["/workspace/data", "/workspace/logs", "/workspace/reports"]
 
-# 健康检查（FastAPI 模式）
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || curl -f http://localhost:8000/health \
     || python -c "import sys; sys.exit(0)"
 
-# 默认命令（可被覆盖）
 CMD ["python", "main.py", "--schedule"]

@@ -74,5 +74,10 @@ CLAUDE.md
 
 # ignore static files
 static/
+static-vue/
 /apps/dsa-desktop/dist/
 /apps/dsa-desktop/node_modules/
+
+# frontend build artifacts
+web/node_modules/
+web/dist/
