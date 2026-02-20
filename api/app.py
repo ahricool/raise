@@ -29,16 +29,29 @@ from fastapi.responses import FileResponse
 from api.v1 import api_v1_router
 from api.middlewares.error_handler import add_error_handlers
 from api.v1.schemas.common import RootResponse, HealthResponse
+from src.config import get_config
 from src.services.system_config_service import SystemConfigService
+from src.services.schedule_service import SchedulerService
 
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     """Initialize and release shared services for the app lifecycle."""
     app.state.system_config_service = SystemConfigService()
+
+    # 启动定时任务调度器
+    config = get_config()
+    scheduler = SchedulerService()
+    scheduler.start(
+        schedule_enabled=config.schedule_enabled,
+        schedule_time=config.schedule_time,
+    )
+    app.state.scheduler_service = scheduler
+
     try:
         yield
     finally:
+        scheduler.stop()
         if hasattr(app.state, "system_config_service"):
             delattr(app.state, "system_config_service")
 
