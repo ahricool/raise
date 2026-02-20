@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from api.deps import get_system_config_service
 from api.v1.schemas.common import ErrorResponse
@@ -20,10 +20,18 @@ from api.v1.schemas.system_config import (
     ValidateSystemConfigResponse,
 )
 from src.services.system_config_service import ConfigConflictError, ConfigValidationError, SystemConfigService
+from src.services.schedule_service import SchedulerService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _get_scheduler(request: Request) -> SchedulerService:
+    svc = getattr(request.app.state, "scheduler_service", None)
+    if svc is None:
+        raise HTTPException(status_code=503, detail={"error": "scheduler_unavailable", "message": "调度器未就绪"})
+    return svc
 
 
 @router.get(
@@ -165,3 +173,53 @@ def get_system_config_schema(
                 "message": "Failed to load system configuration schema",
             },
         )
+
+
+# ── 定时任务调度器 ─────────────────────────────────────────────────────────
+
+
+@router.get(
+    "/scheduler/status",
+    summary="查询定时任务状态",
+    description="返回调度器运行状态、下次执行时间、上次执行时间等信息。",
+    tags=["Scheduler"],
+)
+def get_scheduler_status(request: Request) -> dict:
+    """返回调度器当前状态"""
+    return _get_scheduler(request).get_status()
+
+
+@router.post(
+    "/scheduler/trigger",
+    summary="手动立即触发一次自选股分析",
+    description="不影响正常定时计划，立即对自选股列表中的所有股票提交分析任务。",
+    tags=["Scheduler"],
+)
+async def trigger_scheduler(request: Request) -> dict:
+    """手动触发自选股分析"""
+    scheduler = _get_scheduler(request)
+    try:
+        result = await scheduler.trigger_now()
+        return result
+    except Exception as exc:
+        logger.error("手动触发调度任务失败: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "trigger_failed", "message": str(exc)},
+        )
+
+
+@router.put(
+    "/scheduler/reschedule",
+    summary="动态更新定时时间",
+    description="在不重启应用的情况下更新每日分析执行时间（格式 HH:MM）。",
+    tags=["Scheduler"],
+)
+def reschedule(request: Request, schedule_time: str = Query(..., description="新的执行时间，格式 HH:MM，如 18:30")) -> dict:
+    """更新定时执行时间"""
+    import re
+    if not re.fullmatch(r"\d{1,2}:\d{2}", schedule_time):
+        raise HTTPException(status_code=422, detail={"error": "invalid_time", "message": "格式应为 HH:MM，如 18:30"})
+    scheduler = _get_scheduler(request)
+    scheduler.reschedule(schedule_time)
+    return {"success": True, "schedule_time": schedule_time}

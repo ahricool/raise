@@ -17,7 +17,7 @@ COPY web ./
 RUN npm run build
 
 # ── Stage 2: Python runtime ────────────────────────────────────────────────
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /workspace
 
@@ -30,9 +30,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-# System deps
+# System deps (curl for healthcheck; gcc not needed, all packages ship binary wheels)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
