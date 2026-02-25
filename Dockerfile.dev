@@ -1,0 +1,37 @@
+# ===================================
+# 开发环境镜像：仅安装依赖，代码通过 volume 挂载
+# ===================================
+# 使用方式: docker compose -f docker-compose.dev.yml up
+# 代码修改后重启容器即生效，或使用 uvicorn --reload 热重载
+
+FROM python:3.12-slim-bookworm
+
+WORKDIR /workspace
+
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Only install deps; application code is mounted at runtime
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync
+
+RUN mkdir -p /workspace/data /workspace/logs /workspace/reports
+
+ENV PYTHONUNBUFFERED=1 \
+    LOG_DIR=/workspace/logs \
+    DATABASE_PATH=/workspace/data/stock_analysis.db \
+    WEBUI_HOST=0.0.0.0 \
+    API_PORT=8000
+
+EXPOSE 8000
+
+# Default: run server (override in compose with uvicorn --reload)
+CMD ["uv", "run", "uvicorn", "api.app:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]

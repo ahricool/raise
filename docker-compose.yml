@@ -1,12 +1,12 @@
 # ===================================
-# A股自选股智能分析系统 - Docker Compose
+# 生产环境 Docker Compose
 # ===================================
+# 镜像内包含完整代码与前端构建产物，无代码挂载。
 #
-# 启动:
-#   docker-compose -f docker/docker-compose.yml up -d
+# 启动（项目根目录执行）:
+#   docker compose up -d
 #
-# 仅后端:
-#   docker-compose -f docker/docker-compose.yml up -d server
+# 开发环境请使用: docker compose -f docker-compose.dev.yml up -d
 
 services:
 
@@ -33,25 +33,25 @@ services:
   # ── Python Backend + 内嵌前端 ────────────────────────────────────────────
   server:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     image: raise-server:${env_version:-latest}
     container_name: raise-server
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env
     environment:
       - TZ=Asia/Shanghai
       - WEBUI_HOST=0.0.0.0
     volumes:
-      - ../data:/workspace/data
-      - ../logs:/workspace/logs
-      - ../reports:/workspace/reports
-      - ../.env:/workspace/.env
+      - ./data:/workspace/data
+      - ./logs:/workspace/logs
+      - ./reports:/workspace/reports
+      - ./.env:/workspace/.env
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
+    command: ["uv", "run", "python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
     logging:

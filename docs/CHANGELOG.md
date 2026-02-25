@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [3.0.8] - 2026-02-20
+
+### 新增
+- 🤖 新增 Telegram 持仓回调能力：`POST /bot/telegram`
+- 🗄️ 新增 `telegram_positions` 表，持久化用户持仓（按用户/会话/股票唯一）
+- 🧠 新增 LLM 持仓解析流程（文本/图片消息），自动入库更新
+- 🧹 新增 Telegram 删除持仓命令支持（如 `/position_delete 600519`）
+
 ## [3.0.6] - 2026-02-17
 
 ### 新增

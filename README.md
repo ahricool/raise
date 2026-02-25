@@ -36,6 +36,7 @@
 | 复盘 | 大盘复盘 | 每日市场概览、板块涨跌、北向资金 |
 | 回测 | AI 回测验证 | 自动评估历史分析准确率，方向胜率、止盈止损命中率 |
 | 推送 | 多渠道通知 | 企业微信、飞书、Telegram、钉钉、邮件、Pushover |
+| 机器人 | Telegram 持仓管理 | 文本/截图回调入库、LLM 解析更新、命令删除持仓 |
 | 自动化 | 定时运行 | GitHub Actions 定时执行，无需服务器 |
 
 ### 技术栈与数据来源
@@ -207,6 +208,27 @@ python main.py
 该值会优先于 SQLite 配置。
 
 当前内置核心表包括：`users`（注册用户）和 `user_stock`（用户订阅股票关系）等。
+
+另包含 `telegram_positions`（Telegram 用户持仓）表，用于保存机器人回调解析出的持仓数据。
+
+## 🤖 Telegram 持仓回调
+
+- 回调地址：`POST /bot/telegram`
+- 可选安全头：`X-Telegram-Bot-Api-Secret-Token`（当配置 `TELEGRAM_WEBHOOK_SECRET` 时启用校验）
+- 支持输入：
+  - 文字持仓描述（如：`600519 200股 成本价1820`）
+  - 图片消息（优先解析 caption；配置 Gemini 时可尝试图片解析）
+- 常用指令：
+  - `/positions`：查看当前持仓
+  - `/position_delete 600519`：删除指定持仓
+
+在 Telegram 设置 webhook 示例：
+
+```bash
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://<your-domain>/bot/telegram","secret_token":"<TELEGRAM_WEBHOOK_SECRET>"}'
+```
 
 
 ## 🖥️ Web 界面

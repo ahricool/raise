@@ -28,3 +28,10 @@ test_*.py
 # 忽略文档
 *.md
 !README.md
+
+# 忽略前端依赖与构建产物（镜像内由 npm ci / npm run build 生成）
+web/node_modules/
+web/dist/
+web/.vite/
+web/.nuxt/
+web/.output/

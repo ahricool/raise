@@ -1,0 +1,66 @@
+# ===================================
+# 开发环境 Docker Compose
+# ===================================
+# 仅安装依赖，代码通过 volume 挂载，修改后重启即生效；配合 uvicorn --reload 可热重载。
+# 前端：挂载 ./static，需先在宿主机构建一次: cd web && pnpm build（或 npm run build）
+# 若未构建，主页会显示 API JSON；也可单独跑前端: cd web && pnpm dev（端口 5174）
+#
+# 启动（项目根目录执行）:
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# 查看日志（含热重载输出）:
+#   docker compose -f docker-compose.dev.yml logs -f server
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: raise-dev-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=stock_analysis
+      - TZ=Asia/Shanghai
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stock_analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: raise-server:dev
+    container_name: raise-dev-server
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai
+      - WEBUI_HOST=0.0.0.0
+    volumes:
+      - ./main.py:/workspace/main.py
+      - ./api:/workspace/api
+      - ./src:/workspace/src
+      - ./bot:/workspace/bot
+      - ./data_provider:/workspace/data_provider
+      - ./static:/workspace/static
+      - ./data:/workspace/data
+      - ./logs:/workspace/logs
+      - ./reports:/workspace/reports
+      - ./.env:/workspace/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["uv", "run", "uvicorn", "api.app:app", "--reload", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
+    ports:
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
+
+volumes:
+  postgres_data_dev:

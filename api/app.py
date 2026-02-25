@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from api.v1 import api_v1_router
+from api.bot_webhook import router as bot_webhook_router
 from api.middlewares.error_handler import add_error_handlers
 from api.v1.schemas.common import RootResponse, HealthResponse
 from src.config import get_config
@@ -38,6 +39,10 @@ from src.services.schedule_service import SchedulerService
 async def app_lifespan(app: FastAPI):
     """Initialize and release shared services for the app lifecycle."""
     app.state.system_config_service = SystemConfigService()
+
+    # Initialize DatabaseManager at startup so first request does not race with lazy init
+    from src.storage import DatabaseManager
+    DatabaseManager.get_instance()
 
     # 启动定时任务调度器
     config = get_config()
@@ -66,9 +71,9 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     Returns:
         配置完成的 FastAPI 应用实例
     """
-    # 默认静态文件目录
+    # 默认静态文件目录（相对 api/app.py 的父级 = 项目根）
     if static_dir is None:
-        static_dir = Path(__file__).parent.parent / "static"
+        static_dir = Path(__file__).resolve().parent.parent / "static"
     
     # 创建 FastAPI 实例
     app = FastAPI(
@@ -119,6 +124,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     # ============================================================
     
     app.include_router(api_v1_router)
+    app.include_router(bot_webhook_router)
     add_error_handlers(app)
     
     # ============================================================

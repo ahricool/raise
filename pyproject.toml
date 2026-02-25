@@ -10,7 +10,6 @@ dependencies = [
     "baostock>=0.8.0",
     "dingtalk-stream>=0.24.3",
     "discord-py>=2.0.0",
-    "dotenv>=0.9.9",
     "efinance>=0.5.5",
     "fake-useragent>=1.4.0",
     "fastapi>=0.109.0",
