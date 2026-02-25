@@ -26,7 +26,17 @@ class TaskStatusEnum(str, Enum):
 
 class AnalyzeRequest(BaseModel):
     """分析请求模型（支持 snake_case 与 camelCase，前端通常传 camelCase）"""
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {
+                "stock_code": "600519",
+                "report_type": "detailed",
+                "force_refresh": False,
+                "async_mode": False,
+            }
+        },
+    )
 
     stock_code: Optional[str] = Field(
         None,
@@ -56,16 +66,6 @@ class AnalyzeRequest(BaseModel):
         alias="asyncMode",
         description="是否使用异步模式",
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "stock_code": "600519",
-                "report_type": "detailed",
-                "force_refresh": False,
-                "async_mode": False
-            }
-        }
 
 
 class AnalysisResultResponse(BaseModel):

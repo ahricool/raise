@@ -2,7 +2,8 @@
 # 开发环境 Docker Compose
 # ===================================
 # 仅安装依赖，代码通过 volume 挂载，修改后重启即生效；配合 uvicorn --reload 可热重载。
-# 前端不包含在容器内，可在宿主机运行: cd web && npm run dev
+# 前端：挂载 ./static，需先在宿主机构建一次: cd web && pnpm build（或 npm run build）
+# 若未构建，主页会显示 API JSON；也可单独跑前端: cd web && pnpm dev（端口 5174）
 #
 # 启动（项目根目录执行）:
 #   docker compose -f docker-compose.dev.yml up -d
@@ -49,6 +50,7 @@ services:
       - ./src:/workspace/src
       - ./bot:/workspace/bot
       - ./data_provider:/workspace/data_provider
+      - ./static:/workspace/static
       - ./data:/workspace/data
       - ./logs:/workspace/logs
       - ./reports:/workspace/reports
