@@ -40,6 +40,10 @@ async def app_lifespan(app: FastAPI):
     """Initialize and release shared services for the app lifecycle."""
     app.state.system_config_service = SystemConfigService()
 
+    # Initialize DatabaseManager at startup so first request does not race with lazy init
+    from src.storage import DatabaseManager
+    DatabaseManager.get_instance()
+
     # 启动定时任务调度器
     config = get_config()
     scheduler = SchedulerService()

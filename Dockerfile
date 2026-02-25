@@ -1,7 +1,8 @@
 # ===================================
-# A股自选股智能分析系统 - Docker 镜像
+# 生产环境镜像（多阶段：前端打包 + 后端，代码 COPY 进镜像）
 # ===================================
-# 多阶段构建：前端打包 + 后端运行
+# 使用方式: docker compose up -d  或  docker compose -f docker-compose.yml up -d
+# 本文件位于项目根目录，build context 为 .
 
 # ── Stage 1: Build Vue 3 frontend ──────────────────────────────────────────
 FROM node:20-slim AS web-builder
@@ -65,6 +66,6 @@ VOLUME ["/workspace/data", "/workspace/logs", "/workspace/reports"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || curl -f http://localhost:8000/health \
-    || python -c "import sys; sys.exit(0)"
+    || uv run python -c "import sys; sys.exit(0)"
 
-CMD ["python", "main.py", "--schedule"]
+CMD ["uv", "run", "python", "main.py", "--schedule"]

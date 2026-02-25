@@ -227,24 +227,24 @@ cp .env.example .env
 vim .env  # Fill in API Keys and configuration
 
 # 3. Start container
-docker-compose -f ./docker/docker-compose.yml up -d server     # Web service mode (recommended, provides API & WebUI)
-docker-compose -f ./docker/docker-compose.yml up -d analyzer   # Scheduled task mode
-docker-compose -f ./docker/docker-compose.yml up -d            # Start both modes
+docker compose -f docker-compose.yml up -d server     # Web service mode (recommended, provides API & WebUI)
+docker compose -f docker-compose.yml up -d analyzer   # Scheduled task mode
+docker compose -f docker-compose.yml up -d            # Start both modes
 
 # 4. Access WebUI
 # http://localhost:8000
 
 # 5. View logs
-docker-compose -f ./docker/docker-compose.yml logs -f server
+docker compose -f docker-compose.yml logs -f server
 ```
 
 ### Run Mode Description
 
 | Command | Description | Port |
 |------|------|------|
-| `docker-compose -f ./docker/docker-compose.yml up -d server` | Web service mode, provides API & WebUI | 8000 |
-| `docker-compose -f ./docker/docker-compose.yml up -d analyzer` | Scheduled task mode, daily auto execution | - |
-| `docker-compose -f ./docker/docker-compose.yml up -d` | Start both modes simultaneously | 8000 |
+| `docker compose -f docker-compose.yml up -d server` | Web service mode, provides API & WebUI | 8000 |
+| `docker compose -f docker-compose.yml up -d analyzer` | Scheduled task mode, daily auto execution | - |
+| `docker compose -f docker-compose.yml up -d` | Start both modes simultaneously | 8000 |
 
 ### Docker Compose Configuration
 
@@ -285,17 +285,17 @@ services:
 
 ```bash
 # View running status
-docker-compose -f ./docker/docker-compose.yml ps
+docker compose -f docker-compose.yml ps
 
 # View logs
-docker-compose -f ./docker/docker-compose.yml logs -f server
+docker compose -f docker-compose.yml logs -f server
 
 # Stop services
-docker-compose -f ./docker/docker-compose.yml down
+docker compose -f docker-compose.yml down
 
 # Rebuild image (after code update)
-docker-compose -f ./docker/docker-compose.yml build --no-cache
-docker-compose -f ./docker/docker-compose.yml up -d server
+docker compose -f docker-compose.yml build --no-cache
+docker compose -f docker-compose.yml up -d server
 ```
 
 ### Manual Image Build

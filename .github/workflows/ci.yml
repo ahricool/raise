@@ -75,5 +75,5 @@ jobs:
       
       - name: 🐳 构建镜像
         run: |
-          docker build -t stock-analysis:test -f docker/Dockerfile .
+          docker build -t stock-analysis:test -f Dockerfile .
           docker run --rm stock-analysis:test python -c "print('✅ Docker OK')"

@@ -13,7 +13,7 @@
 from typing import Optional, List, Any
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskStatusEnum(str, Enum):
@@ -25,32 +25,38 @@ class TaskStatusEnum(str, Enum):
 
 
 class AnalyzeRequest(BaseModel):
-    """分析请求模型"""
-    
+    """分析请求模型（支持 snake_case 与 camelCase，前端通常传 camelCase）"""
+    model_config = ConfigDict(populate_by_name=True)
+
     stock_code: Optional[str] = Field(
-        None, 
-        description="单只股票代码", 
-        example="600519"
+        None,
+        alias="stockCode",
+        description="单只股票代码",
+        example="600519",
     )
     stock_codes: Optional[List[str]] = Field(
-        None, 
+        None,
+        alias="stockCodes",
         description="多只股票代码（与 stock_code 二选一）",
-        example=["600519", "000858"]
+        example=["600519", "000858"],
     )
     report_type: str = Field(
-        "detailed", 
+        "detailed",
+        alias="reportType",
         description="报告类型",
-        pattern="^(simple|detailed)$"
+        pattern="^(simple|detailed)$",
     )
     force_refresh: bool = Field(
         True,
-        description="是否强制刷新（忽略缓存）"
+        alias="forceRefresh",
+        description="是否强制刷新（忽略缓存）",
     )
     async_mode: bool = Field(
         False,
-        description="是否使用异步模式"
+        alias="asyncMode",
+        description="是否使用异步模式",
     )
-    
+
     class Config:
         json_schema_extra = {
             "example": {
