@@ -43,6 +43,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - WEBUI_HOST=0.0.0.0
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/raise
     volumes:
       - ./data:/workspace/data
       - ./logs:/workspace/logs
