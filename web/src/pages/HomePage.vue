@@ -6,7 +6,6 @@ import { validateStockCode } from '@/utils/validation'
 import { getRecentStartDate } from '@/utils/format'
 import { useTaskStream } from '@/composables/useTaskStream'
 import TaskPanel from '@/components/tasks/TaskPanel.vue'
-import HistoryList from '@/components/history/HistoryList.vue'
 import ReportSummary from '@/components/report/ReportSummary.vue'
 import Loading from '@/components/common/Loading.vue'
 import WatchlistPanel from '@/components/watchlist/WatchlistPanel.vue'
@@ -17,17 +16,27 @@ const inputError = ref<string | null>(null)
 const isAnalyzing = ref(false)
 const analyzeError = ref<string | null>(null)
 
-// Left panel tab
-const leftTab = ref<'watchlist' | 'history'>('watchlist')
+// Watchlist + latest history map
+const latestHistoryMap = ref<Record<string, HistoryItem>>({})
 
-// History
-const historyItems = ref<HistoryItem[]>([])
-const selectedId = ref<string | undefined>(undefined)
-const selectedReport = ref<AnalysisReport | null>(null)
+// Chip shown in input area when a watchlist stock is selected
+const chipStock = ref<{ code: string; name: string } | null>(null)
+
+function chipColor(code: string) {
+  const score = latestHistoryMap.value[code]?.sentimentScore
+  if (score == null) return 'border-blue-400 text-blue-600 bg-blue-50'
+  if (score >= 70) return 'border-green-500 text-green-700 bg-green-50'
+  if (score >= 50) return 'border-blue-500 text-blue-700 bg-blue-50'
+  if (score >= 30) return 'border-amber-500 text-amber-700 bg-amber-50'
+  return 'border-red-500 text-red-700 bg-red-50'
+}
+
+// Current stock history navigation
+const selectedStockCode = ref<string | undefined>(undefined)
+const stockHistory = ref<HistoryItem[]>([])
+const historyIndex = ref(0)
 const reportLoading = ref(false)
-const historyPage = ref(1)
-const historyTotal = ref(0)
-const historyLoading = ref(false)
+const selectedReport = ref<AnalysisReport | null>(null)
 
 // Active tasks
 const activeTasks = ref<TaskInfo[]>([])
@@ -46,52 +55,59 @@ useTaskStream({
   },
   onTaskCompleted(task) {
     activeTasks.value = activeTasks.value.filter((t) => t.taskId !== task.taskId)
-    loadHistory(true)
+    loadLatestHistoryMap()
+    if (selectedStockCode.value === task.stockCode) {
+      handleWatchlistSelect(task.stockCode)
+    }
   },
   onTaskFailed(task) {
     activeTasks.value = activeTasks.value.filter((t) => t.taskId !== task.taskId)
   },
 })
 
-async function loadHistory(reset = false) {
-  if (reset) {
-    historyPage.value = 1
-    historyItems.value = []
+async function loadLatestHistoryMap() {
+  const res = await historyApi.getList({ startDate: getRecentStartDate(60), limit: 500 })
+  const map: Record<string, HistoryItem> = {}
+  for (const item of res.items) {
+    if (!map[item.stockCode]) map[item.stockCode] = item // desc order, first = newest
   }
-  historyLoading.value = true
-  try {
-    const res = await historyApi.getList({
-      startDate: getRecentStartDate(30),
-      page: historyPage.value,
-      limit: 30,
-    })
-    historyTotal.value = res.total
-    if (reset) {
-      historyItems.value = res.items
-    } else {
-      historyItems.value.push(...res.items)
-    }
-    if (reset && res.items.length > 0 && !selectedId.value) {
-      selectHistory(res.items[0])
-    }
-  } finally {
-    historyLoading.value = false
-  }
+  latestHistoryMap.value = map
 }
 
-async function loadMore() {
-  historyPage.value++
-  await loadHistory(false)
-}
-
-async function selectHistory(item: HistoryItem) {
-  selectedId.value = item.queryId
+async function handleWatchlistSelect(code: string, name?: string) {
+  selectedStockCode.value = code
+  const displayName = name ?? latestHistoryMap.value[code]?.stockName ?? code
+  chipStock.value = { code, name: displayName }
+  stockCode.value = code
+  stockHistory.value = []
+  historyIndex.value = 0
   selectedReport.value = null
+  const res = await historyApi.getList({ stockCode: code, limit: 100 })
+  stockHistory.value = res.items
+  if (res.items.length > 0) await loadReport(res.items[0])
+}
+
+async function loadReport(item: HistoryItem) {
   reportLoading.value = true
+  selectedReport.value = null
   try {
     selectedReport.value = await historyApi.getDetail(item.queryId)
   } finally {
     reportLoading.value = false
+  }
+}
+
+function navOlder() {
+  if (historyIndex.value < stockHistory.value.length - 1) {
+    historyIndex.value++
+    loadReport(stockHistory.value[historyIndex.value])
+  }
+}
+
+function navNewer() {
+  if (historyIndex.value > 0) {
+    historyIndex.value--
+    loadReport(stockHistory.value[historyIndex.value])
   }
 }
 
@@ -114,8 +130,7 @@ async function handleAnalyze(code?: string) {
       asyncMode: true,
     })
     stockCode.value = ''
-    // Switch to history tab to show progress
-    leftTab.value = 'history'
+    chipStock.value = null
   } catch (err) {
     if (err instanceof DuplicateTaskError) {
       analyzeError.value = `${err.stockCode} 已在分析队列中`
@@ -128,7 +143,7 @@ async function handleAnalyze(code?: string) {
 }
 
 onMounted(async () => {
-  await loadHistory(true)
+  await loadLatestHistoryMap()
   try {
     const res = await analysisApi.getTasks({ status: 'active', limit: 20 })
     activeTasks.value = res.tasks.filter((t) => t.status === 'pending' || t.status === 'processing')
@@ -144,7 +159,27 @@ onMounted(async () => {
       <div class="p-4 border-b border-slate-100">
         <h1 class="text-sm font-semibold text-slate-800 mb-3">股票分析</h1>
         <div class="flex gap-2">
-          <div class="flex-1">
+          <!-- Stock chip (when selected from watchlist) -->
+          <div v-if="chipStock" class="flex-1 flex items-center">
+            <span
+              :class="[
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium flex-1',
+                chipColor(chipStock.code),
+              ]"
+            >
+              <span class="truncate">{{ chipStock.name }}（{{ chipStock.code }}）</span>
+              <button
+                class="shrink-0 opacity-60 hover:opacity-100 transition-opacity ml-auto"
+                @click="chipStock = null; stockCode = ''"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          </div>
+          <!-- Text input (default) -->
+          <div v-else class="flex-1">
             <input
               v-model="stockCode"
               type="text"
@@ -156,7 +191,6 @@ onMounted(async () => {
               @keydown.enter="handleAnalyze()"
               @input="inputError = null"
             />
-            <p v-if="inputError" class="text-xs text-red-500 mt-1">{{ inputError }}</p>
           </div>
           <button
             :disabled="isAnalyzing"
@@ -170,57 +204,50 @@ onMounted(async () => {
             <span>{{ isAnalyzing ? '…' : '分析' }}</span>
           </button>
         </div>
+        <p v-if="inputError && !chipStock" class="text-xs text-red-500 mt-1">{{ inputError }}</p>
         <p v-if="analyzeError" class="text-xs text-red-500 mt-1.5">{{ analyzeError }}</p>
       </div>
 
       <!-- Active tasks -->
       <TaskPanel :tasks="activeTasks" />
 
-      <!-- Tab switcher -->
-      <div class="flex border-b border-slate-100 shrink-0">
-        <button
-          v-for="tab in (['watchlist', 'history'] as const)"
-          :key="tab"
-          :class="[
-            'flex-1 py-2 text-xs font-medium transition-colors',
-            leftTab === tab
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-slate-400 hover:text-slate-600',
-          ]"
-          @click="leftTab = tab"
-        >
-          {{ tab === 'watchlist' ? '自选股' : '历史记录' }}
-        </button>
-      </div>
-
-      <!-- Tab content -->
+      <!-- Watchlist -->
       <div class="flex-1 overflow-y-auto min-h-0">
-        <!-- Watchlist tab -->
         <WatchlistPanel
-          v-if="leftTab === 'watchlist'"
-          @analyze="handleAnalyze"
+          :latest-history="latestHistoryMap"
+          :selected-code="selectedStockCode"
+          @select="handleWatchlistSelect"
         />
-
-        <!-- History tab -->
-        <template v-else>
-          <div class="px-3 py-2 border-b border-slate-100">
-            <span class="text-xs text-slate-400 font-medium">近30天</span>
-          </div>
-          <HistoryList
-            :items="historyItems"
-            :selected-id="selectedId"
-            :has-more="historyItems.length < historyTotal"
-            :loading="historyLoading"
-            @select="selectHistory"
-            @load-more="loadMore"
-          />
-        </template>
       </div>
     </div>
 
     <!-- Right panel: report -->
     <div class="flex-1 overflow-y-auto bg-slate-50">
       <div class="max-w-2xl mx-auto p-6">
+        <!-- History navigation -->
+        <div
+          v-if="stockHistory.length > 0"
+          class="flex items-center justify-between mb-4 bg-white border border-slate-200 rounded-xl px-4 py-2.5"
+        >
+          <button
+            :disabled="historyIndex >= stockHistory.length - 1"
+            class="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 flex items-center gap-1"
+            @click="navOlder"
+          >
+            ← 上一条
+          </button>
+          <span class="text-xs text-slate-400">
+            第 {{ historyIndex + 1 }} / {{ stockHistory.length }} 条
+          </span>
+          <button
+            :disabled="historyIndex <= 0"
+            class="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 flex items-center gap-1"
+            @click="navNewer"
+          >
+            下一条 →
+          </button>
+        </div>
+
         <div v-if="reportLoading" class="flex items-center justify-center py-20">
           <Loading size="lg" label="加载报告中…" />
         </div>
@@ -233,7 +260,7 @@ onMounted(async () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <p class="text-slate-500 text-sm">从左侧选择历史记录，或输入股票代码开始分析</p>
+          <p class="text-slate-500 text-sm">从左侧自选股选择股票查看分析记录</p>
         </div>
       </div>
     </div>
