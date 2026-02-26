@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { watchlistApi } from '@/api/watchlist'
+import { formatDateTime } from '@/utils/format'
 import type { WatchlistItem, StockSearchResult } from '@/types/watchlist'
+import type { HistoryItem } from '@/types/analysis'
 import Loading from '@/components/common/Loading.vue'
 
+const props = defineProps<{
+  latestHistory: Record<string, HistoryItem>
+  selectedCode?: string
+}>()
+
 const emit = defineEmits<{
-  (e: 'analyze', code: string): void
+  (e: 'select', code: string, name: string): void
 }>()
 
 // ── 列表 ─────────────────────────────────────────────────────────────────
@@ -37,6 +44,15 @@ async function handleRemove(item: WatchlistItem) {
   } finally {
     deletingId.value = null
   }
+}
+
+// ── 评分颜色 ──────────────────────────────────────────────────────────────
+function scoreColor(score?: number) {
+  if (score == null) return 'bg-slate-300'
+  if (score >= 70) return 'bg-green-500'
+  if (score >= 50) return 'bg-blue-500'
+  if (score >= 30) return 'bg-amber-500'
+  return 'bg-red-500'
 }
 
 // ── 搜索并添加 ────────────────────────────────────────────────────────────
@@ -173,44 +189,65 @@ onMounted(loadList)
         暂无自选股，点击右上角 + 添加
       </p>
       <div v-else>
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="group flex items-center justify-between px-3 py-2.5 border-b border-slate-50 hover:bg-slate-50 transition-colors"
-        >
-          <!-- 点击触发分析 -->
-          <button
-            class="flex items-center gap-2 min-w-0 flex-1 text-left"
-            @click="emit('analyze', item.stockCode)"
+        <template v-for="item in items" :key="item.id">
+          <!-- Main row -->
+          <div
+            :class="[
+              'group flex items-center justify-between px-3 py-2.5 border-b border-slate-50 cursor-pointer transition-colors',
+              props.selectedCode === item.stockCode
+                ? 'bg-blue-50 border-l-2 border-l-blue-500'
+                : 'hover:bg-slate-50',
+            ]"
+            @click="emit('select', item.stockCode, item.stockName || item.stockCode)"
           >
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-slate-800 truncate">
-                {{ item.stockName || item.stockCode }}
-              </p>
-              <p class="text-xs text-slate-400 font-mono">{{ item.stockCode }}</p>
+            <!-- Left: score dot + name + code -->
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <span
+                :class="['h-2 w-2 rounded-full shrink-0', scoreColor(props.latestHistory[item.stockCode]?.sentimentScore)]"
+              />
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-slate-800 truncate">
+                  {{ item.stockName || item.stockCode }}
+                </p>
+                <p class="text-xs text-slate-400 font-mono">{{ item.stockCode }}</p>
+              </div>
             </div>
-          </button>
 
-          <!-- 删除按钮（hover 时显示） -->
-          <button
-            :disabled="deletingId === item.id"
-            class="ml-2 shrink-0 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:cursor-not-allowed"
-            title="从自选股移除"
-            @click.stop="handleRemove(item)"
-          >
-            <svg
-              v-if="deletingId === item.id"
-              class="animate-spin h-4 w-4"
-              fill="none" viewBox="0 0 24 24"
+            <!-- Middle: score + advice -->
+            <div class="flex flex-col items-end gap-0.5 mx-2 shrink-0">
+              <span class="text-xs font-semibold text-slate-600">
+                {{ props.latestHistory[item.stockCode]?.sentimentScore ?? '-' }}
+              </span>
+              <span class="text-xs text-slate-400 truncate max-w-[64px]">
+                {{ props.latestHistory[item.stockCode]?.operationAdvice ?? '-' }}
+              </span>
+            </div>
+
+            <!-- Right: remove button -->
+            <button
+              :disabled="deletingId === item.id"
+              class="ml-1 shrink-0 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:cursor-not-allowed"
+              title="从自选股移除"
+              @click.stop="handleRemove(item)"
             >
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+              <svg
+                v-if="deletingId === item.id"
+                class="animate-spin h-4 w-4"
+                fill="none" viewBox="0 0 24 24"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <!-- Time row -->
+          <div class="text-xs text-slate-300 px-3 -mt-1 pb-1.5 border-b border-slate-50">
+            {{ props.latestHistory[item.stockCode] ? formatDateTime(props.latestHistory[item.stockCode].createdAt) : '-' }}
+          </div>
+        </template>
       </div>
     </div>
   </div>
