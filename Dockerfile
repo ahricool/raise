@@ -56,7 +56,7 @@ RUN mkdir -p /workspace/data /workspace/logs /workspace/reports
 
 ENV PYTHONUNBUFFERED=1 \
     LOG_DIR=/workspace/logs \
-    DATABASE_PATH=/workspace/data/stock_analysis.db \
+    DATABASE_PATH=/workspace/data/raise.db \
     WEBUI_HOST=0.0.0.0 \
     API_PORT=8000
 

@@ -18,14 +18,14 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=stock_analysis
+      - POSTGRES_DB=raise
       - TZ=Asia/Shanghai
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d stock_analysis"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d raise"]
       interval: 5s
       timeout: 5s
       retries: 10
