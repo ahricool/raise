@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
-from collections import defaultdict
 from typing import Optional, Dict, Any, List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -28,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 _JOB_ID = "daily_watchlist_analysis"
 _POSITION_MORNING_JOB_ID = "daily_position_morning_review"
+_POSITION_NOON_JOB_ID = "daily_position_noon_playback"
 _POSITION_EVENING_JOB_ID = "daily_position_evening_summary"
 
 
@@ -103,9 +103,21 @@ class SchedulerService:
             trigger=morning_trigger,
             id=_POSITION_MORNING_JOB_ID,
             replace_existing=True,
-            name="持仓晨间交易建议",
+            name="自选股晨间交易建议",
         )
-        logger.info("[Scheduler] 持仓晨间交易建议已注册，执行时间: 09:00 (工作日)")
+        logger.info("[Scheduler] 自选股晨间交易建议已注册，执行时间: 09:00 (工作日)")
+
+        noon_trigger = CronTrigger(
+            hour=12, minute=0, day_of_week="mon-fri", timezone="Asia/Shanghai"
+        )
+        self._scheduler.add_job(
+            self._run_position_noon_playback,
+            trigger=noon_trigger,
+            id=_POSITION_NOON_JOB_ID,
+            replace_existing=True,
+            name="自选股午间行情播报",
+        )
+        logger.info("[Scheduler] 自选股午间行情播报已注册，执行时间: 12:00 (工作日)")
 
         evening_trigger = CronTrigger(
             hour=15, minute=30, day_of_week="mon-fri", timezone="Asia/Shanghai"
@@ -115,9 +127,9 @@ class SchedulerService:
             trigger=evening_trigger,
             id=_POSITION_EVENING_JOB_ID,
             replace_existing=True,
-            name="持仓收盘走势总结",
+            name="自选股收盘走势总结",
         )
-        logger.info("[Scheduler] 持仓收盘走势总结已注册，执行时间: 15:30 (工作日)")
+        logger.info("[Scheduler] 自选股收盘走势总结已注册，执行时间: 15:30 (工作日)")
 
     def reschedule(self, schedule_time: str) -> None:
         """
@@ -139,23 +151,34 @@ class SchedulerService:
             logger.info("[Scheduler] 每日分析任务已移除")
         if self._scheduler.get_job(_POSITION_MORNING_JOB_ID):
             self._scheduler.remove_job(_POSITION_MORNING_JOB_ID)
-            logger.info("[Scheduler] 持仓晨间交易建议已移除")
+            logger.info("[Scheduler] 自选股晨间交易建议已移除")
+        if self._scheduler.get_job(_POSITION_NOON_JOB_ID):
+            self._scheduler.remove_job(_POSITION_NOON_JOB_ID)
+            logger.info("[Scheduler] 自选股午间行情播报已移除")
         if self._scheduler.get_job(_POSITION_EVENING_JOB_ID):
             self._scheduler.remove_job(_POSITION_EVENING_JOB_ID)
-            logger.info("[Scheduler] 持仓收盘走势总结已移除")
+            logger.info("[Scheduler] 自选股收盘走势总结已移除")
 
     # ── 手动触发 ──────────────────────────────────────────────────────────
 
     async def trigger_now(self) -> Dict[str, Any]:
-        """
-        立即手动触发一次分析（不影响正常定时计划）
-
-        Returns:
-            包含已提交股票数量的结果字典
-        """
+        """立即触发一次自选股队列分析（不影响正常定时计划）"""
         logger.info("[Scheduler] 手动触发自选股分析")
         count = await self._run_daily_analysis()
         return {"submitted": count, "triggered_at": datetime.now().isoformat()}
+
+    async def trigger_push(self, mode: str) -> Dict[str, Any]:
+        """
+        立即触发一次 Telegram 推送任务。
+
+        Args:
+            mode: morning | noon | evening
+        """
+        if mode not in ("morning", "noon", "evening"):
+            raise ValueError(f"无效的 mode: {mode}，应为 morning / noon / evening")
+        logger.info(f"[Scheduler] 手动触发 Telegram 推送: {mode}")
+        pushed = await asyncio.to_thread(self._run_position_job, mode)
+        return {"mode": mode, "pushed": pushed, "triggered_at": datetime.now().isoformat()}
 
     # ── 状态查询 ──────────────────────────────────────────────────────────
 
@@ -254,58 +277,57 @@ class SchedulerService:
         return submitted
 
     async def _run_position_morning_review(self) -> int:
-        """开盘前 09:00：对持仓股票进行分析并给出今日交易建议。"""
-        logger.info("[Scheduler] 开始执行持仓晨间交易建议")
+        """开盘前 09:00：对自选股进行分析并给出今日交易建议。"""
+        logger.info("[Scheduler] 开始执行自选股晨间交易建议")
         return await asyncio.to_thread(self._run_position_job, "morning")
 
+    async def _run_position_noon_playback(self) -> int:
+        """午间 12:00：对自选股进行分析并播报午间行情。"""
+        logger.info("[Scheduler] 开始执行自选股午间行情播报")
+        return await asyncio.to_thread(self._run_position_job, "noon")
+
     async def _run_position_evening_summary(self) -> int:
-        """收盘后 15:30：对今日持仓走势进行总结。"""
-        logger.info("[Scheduler] 开始执行持仓收盘走势总结")
+        """收盘后 15:30：对今日自选股走势进行总结。"""
+        logger.info("[Scheduler] 开始执行自选股收盘走势总结")
         return await asyncio.to_thread(self._run_position_job, "evening")
 
     def _run_position_job(self, mode: str) -> int:
-        """同步执行持仓分析并按 Telegram 聊天推送。mode: morning | evening。返回推送的聊天数。"""
-        from sqlalchemy import select
+        """同步执行自选股分析并推送到 Telegram。mode: morning | noon | evening。"""
+        import requests as _requests
 
         from src.config import get_config
         from src.core.pipeline import StockAnalysisPipeline
         from src.enums import ReportType
-        from src.services.telegram_position_service import TelegramPositionService
-        from src.storage import DatabaseManager, TelegramPosition
+        from src.services.watchlist_service import WatchlistService
+        from src.storage import DatabaseManager
 
+        config = get_config()
+        chat_id = (config.telegram_chat_id or "").strip()
+        if not chat_id:
+            logger.warning("[Scheduler] TELEGRAM_CHAT_ID 未配置，跳过推送")
+            return 0
+
+        # 读取自选股
         session = DatabaseManager.get_instance().get_session()
         try:
-            rows = (
-                session.execute(select(TelegramPosition).order_by(TelegramPosition.updated_at.desc()))
-                .scalars()
-                .all()
-            )
+            stocks = WatchlistService().list_stocks(session)
         except Exception as e:
-            logger.error(f"[Scheduler] 读取 Telegram 持仓失败: {e}", exc_info=True)
+            logger.error(f"[Scheduler] 读取自选股失败: {e}", exc_info=True)
             return 0
         finally:
             session.close()
 
-        if not rows:
-            logger.info("[Scheduler] 无 Telegram 持仓记录，跳过")
+        if not stocks:
+            logger.info("[Scheduler] 自选股列表为空，跳过")
             return 0
 
-        by_chat: Dict[str, List] = defaultdict(list)
-        for r in rows:
-            if r.platform_chat_id and r.stock_code:
-                by_chat[str(r.platform_chat_id)].append(r)
-
-        if not by_chat:
-            return 0
-
-        all_codes = sorted({p.stock_code for plist in by_chat.values() for p in plist})
-        if not all_codes:
-            return 0
-
-        config = get_config()
+        # 逐支分析
         pipeline = StockAnalysisPipeline(config=config, max_workers=config.max_workers)
         results_by_code: Dict[str, Any] = {}
-        for code in all_codes:
+        for stock in stocks:
+            code = stock.get("stock_code", "")
+            if not code:
+                continue
             try:
                 res = pipeline.process_single_stock(
                     code, skip_analysis=False, single_stock_notify=False, report_type=ReportType.SIMPLE
@@ -313,7 +335,7 @@ class SchedulerService:
                 if res:
                     results_by_code[code] = res
             except Exception as e:
-                logger.error(f"[Scheduler] 持仓分析 {code} 失败: {e}", exc_info=True)
+                logger.error(f"[Scheduler] 自选股分析 {code} 失败: {e}", exc_info=True)
 
         if not results_by_code:
             logger.info("[Scheduler] 无有效分析结果，跳过推送")
@@ -321,54 +343,54 @@ class SchedulerService:
 
         from src.analyzer import AnalysisResult
 
-        tp = TelegramPositionService()
-        pushed = 0
         today = datetime.now().strftime("%Y-%m-%d")
-
-        for chat_id, plist in by_chat.items():
-            seen = set()
-            codes = []
-            for p in plist:
-                if p.stock_code and p.stock_code not in seen:
-                    seen.add(p.stock_code)
-                    codes.append(p.stock_code)
-            if not codes:
+        lines = []
+        for stock in stocks:
+            code = stock.get("stock_code", "")
+            res = results_by_code.get(code)
+            if not res or not isinstance(res, AnalysisResult):
                 continue
+            emoji = res.get_emoji()
+            core = res.get_core_conclusion()
+            if mode in ("morning", "noon"):
+                lines.append(
+                    f"{emoji} {res.name}({res.code}) | 建议: {res.operation_advice} | "
+                    f"评分: {res.sentiment_score} | 结论: {core}"
+                )
+            else:  # evening
+                pct = getattr(res, "change_pct", None)
+                pct_str = f"{pct:+.2f}%" if pct is not None else "N/A"
+                lines.append(f"{emoji} {res.name}({res.code}) | 今日涨跌: {pct_str} | 结论: {core}")
 
-            lines = []
-            for code in codes:
-                res = results_by_code.get(code)
-                if not res or not isinstance(res, AnalysisResult):
-                    continue
-                emoji = res.get_emoji()
-                core = res.get_core_conclusion()
-                if mode == "morning":
-                    lines.append(
-                        f"{emoji} {res.name}({res.code}) | 建议: {res.operation_advice} | "
-                        f"评分: {res.sentiment_score} | 结论: {core}"
-                    )
-                else:
-                    pct = getattr(res, "change_pct", None)
-                    pct_str = f"{pct:+.2f}%" if pct is not None else "N/A"
-                    lines.append(f"{emoji} {res.name}({res.code}) | 今日涨跌: {pct_str} | 结论: {core}")
+        if not lines:
+            return 0
 
-            if not lines:
-                continue
+        if mode == "morning":
+            title = f"📌 {today} 自选股晨间交易建议"
+            footer = "以上内容仅供参考，不构成投资建议。"
+        elif mode == "noon":
+            title = f"🕛 {today} 自选股午间行情播报"
+            footer = "以上内容仅供参考，不构成投资建议。"
+        else:
+            title = f"📈 {today} 自选股收盘走势总结"
+            footer = "以上为今日走势回顾，仅供复盘参考。"
 
-            if mode == "morning":
-                title = f"📌 {today} 持仓晨间交易建议"
-                footer = "以上内容仅供参考，不构成投资建议。"
-            else:
-                title = f"📈 {today} 持仓收盘走势总结"
-                footer = "以上为今日持仓走势回顾，仅供复盘参考。"
-            text = f"{title}\n\n" + "\n".join(lines) + f"\n\n{footer}"
-            try:
-                tp._send_message(chat_id=chat_id, text=text)
-                pushed += 1
-            except Exception as e:
-                logger.error(f"[Scheduler] 推送至 {chat_id} 失败: {e}", exc_info=True)
-
-        return pushed
+        text = f"{title}\n\n" + "\n".join(lines) + f"\n\n{footer}"
+        bot_token = (config.telegram_bot_token or "").strip()
+        if not bot_token:
+            logger.warning("[Scheduler] TELEGRAM_BOT_TOKEN 未配置，跳过推送")
+            return 0
+        try:
+            _requests.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={"chat_id": chat_id, "text": text},
+                timeout=10,
+            )
+            logger.info(f"[Scheduler] 已推送 {mode} 报告至 {chat_id}，共 {len(lines)} 支")
+            return 1
+        except Exception as e:
+            logger.error(f"[Scheduler] 推送至 {chat_id} 失败: {e}", exc_info=True)
+            return 0
 
 
 def get_scheduler_service() -> SchedulerService:

@@ -36,6 +36,7 @@ from sqlalchemy import (
     select,
     and_,
     desc,
+    text,
 )
 from sqlalchemy.orm import (
     declarative_base,
@@ -94,35 +95,6 @@ class UserStock(Base):
         Index('ix_user_stock_code', 'stock_code'),
     )
 
-
-class TelegramPosition(Base):
-    """Telegram user position model."""
-
-    __tablename__ = 'telegram_positions'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    platform_user_id = Column(String(64), nullable=False, index=True)
-    platform_chat_id = Column(String(64), nullable=False, index=True)
-    stock_code = Column(String(16), nullable=False, index=True)
-    stock_name = Column(String(64), nullable=True)
-    quantity = Column(Float, nullable=True)
-    cost_price = Column(Float, nullable=True)
-    note = Column(Text, nullable=True)
-    source_type = Column(String(16), nullable=False, default='text')
-    raw_text = Column(Text, nullable=True)
-    image_file_id = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.now, nullable=False)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(
-            'platform_user_id',
-            'platform_chat_id',
-            'stock_code',
-            name='uix_tg_position_user_chat_code',
-        ),
-        Index('ix_tg_position_user_chat', 'platform_user_id', 'platform_chat_id'),
-    )
 
 class StockDaily(Base):
     """
@@ -478,6 +450,11 @@ class DatabaseManager:
             autoflush=False,
         )
         
+        # 删除已废弃的表
+        with self._engine.connect() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS telegram_positions"))
+            conn.commit()
+
         # 创建所有表
         Base.metadata.create_all(self._engine)
 

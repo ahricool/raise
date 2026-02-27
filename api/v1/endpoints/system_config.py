@@ -189,7 +189,7 @@ def get_scheduler_status(request: Request) -> dict:
     return _get_scheduler(request).get_status()
 
 
-@router.post(
+@router.get(
     "/scheduler/trigger",
     summary="手动立即触发一次自选股分析",
     description="不影响正常定时计划，立即对自选股列表中的所有股票提交分析任务。",
@@ -207,6 +207,25 @@ async def trigger_scheduler(request: Request) -> dict:
             status_code=500,
             detail={"error": "trigger_failed", "message": str(exc)},
         )
+
+
+@router.get(
+    "/scheduler/trigger/push",
+    summary="手动触发 Telegram 推送",
+    description="立即触发一次自选股 Telegram 推送。mode: morning（晨间）/ noon（午间）/ evening（收盘）。",
+    tags=["Scheduler"],
+)
+async def trigger_push(request: Request, mode: str = Query(..., description="推送模式: morning / noon / evening")) -> dict:
+    """手动触发 Telegram 推送"""
+    scheduler = _get_scheduler(request)
+    try:
+        result = await scheduler.trigger_push(mode)
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail={"error": "invalid_mode", "message": str(exc)})
+    except Exception as exc:
+        logger.error("手动触发推送任务失败: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail={"error": "trigger_failed", "message": str(exc)})
 
 
 @router.put(
