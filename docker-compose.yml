@@ -15,11 +15,8 @@ services:
     image: postgres:16
     container_name: raise-postgres
     restart: unless-stopped
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - TZ=Asia/Shanghai
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -40,10 +37,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - TZ=Asia/Shanghai
-      - WEBUI_HOST=0.0.0.0
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     volumes:
       - ./data:/workspace/data
       - ./logs:/workspace/logs

@@ -44,8 +44,6 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - WEBUI_HOST=0.0.0.0
-      # Use Postgres in Docker (hostname is service name, not localhost)
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     volumes:
       - ./main.py:/workspace/main.py
       - ./api:/workspace/api
