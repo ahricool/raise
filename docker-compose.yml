@@ -1,16 +1,9 @@
 # ===================================
 # 生产环境 Docker Compose
 # ===================================
-# 镜像内包含完整代码与前端构建产物，无代码挂载。
-#
-# 启动（项目根目录执行）:
-#   docker compose up -d
-#
-# 开发环境请使用: docker compose -f docker-compose.dev.yml up -d
 
 services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────────────────
   postgres:
     image: postgres:16
     container_name: raise-postgres
@@ -22,12 +15,11 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # ── Python Backend + 内嵌前端 ────────────────────────────────────────────
   server:
     build:
       context: .
@@ -45,7 +37,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["uv", "run", "python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
+    command: [ "uv", "run", "uvicorn", "api.app:app", "--reload", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}" ]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
     logging:
