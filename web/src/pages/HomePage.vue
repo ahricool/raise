@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { analysisApi, DuplicateTaskError } from '@/api/analysis'
 import { historyApi } from '@/api/history'
 import { validateStockCode } from '@/utils/validation'
-import { getRecentStartDate } from '@/utils/format'
 import { useTaskStream } from '@/composables/useTaskStream'
-import TaskPanel from '@/components/tasks/TaskPanel.vue'
 import ReportSummary from '@/components/report/ReportSummary.vue'
 import Loading from '@/components/common/Loading.vue'
 import WatchlistPanel from '@/components/watchlist/WatchlistPanel.vue'
+import HistoryList from '@/components/history/HistoryList.vue'
 import type { HistoryItem, AnalysisReport, TaskInfo } from '@/types/analysis'
 
 const stockCode = ref('')
@@ -41,6 +40,53 @@ const selectedReport = ref<AnalysisReport | null>(null)
 // Active tasks
 const activeTasks = ref<TaskInfo[]>([])
 
+// Left panel tab
+const activeTab = ref<'watchlist' | 'history'>('watchlist')
+
+// History tab state
+const tabHistoryItems = ref<HistoryItem[]>([])
+const tabHistoryLoading = ref(false)
+const tabHistoryHasMore = ref(false)
+const tabHistoryPage = ref(1)
+const tabHistoryLoaded = ref(false)
+const selectedHistoryItemId = ref<string | undefined>(undefined)
+
+async function loadTabHistory(page = 1) {
+  tabHistoryLoading.value = true
+  try {
+    const res = await historyApi.getList({ page, limit: 30 })
+    if (page === 1) {
+      tabHistoryItems.value = res.items
+    } else {
+      tabHistoryItems.value.push(...res.items)
+    }
+    tabHistoryPage.value = page
+    tabHistoryHasMore.value = page < res.totalPages
+    tabHistoryLoaded.value = true
+  } finally {
+    tabHistoryLoading.value = false
+  }
+}
+
+async function loadMoreTabHistory() {
+  if (tabHistoryLoading.value || !tabHistoryHasMore.value) return
+  await loadTabHistory(tabHistoryPage.value + 1)
+}
+
+async function handleHistoryItemSelect(item: HistoryItem) {
+  selectedHistoryItemId.value = item.queryId
+  selectedStockCode.value = undefined
+  stockHistory.value = []
+  historyIndex.value = 0
+  await loadReport(item)
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'history' && !tabHistoryLoaded.value) {
+    loadTabHistory()
+  }
+})
+
 // SSE stream
 useTaskStream({
   onTaskCreated(task) {
@@ -56,6 +102,7 @@ useTaskStream({
   onTaskCompleted(task) {
     activeTasks.value = activeTasks.value.filter((t) => t.taskId !== task.taskId)
     loadLatestHistoryMap()
+    if (tabHistoryLoaded.value) loadTabHistory()
     if (selectedStockCode.value === task.stockCode) {
       handleWatchlistSelect(task.stockCode)
     }
@@ -66,19 +113,21 @@ useTaskStream({
 })
 
 async function loadLatestHistoryMap() {
-  const res = await historyApi.getList({ startDate: getRecentStartDate(60), limit: 500 })
-  const map: Record<string, HistoryItem> = {}
-  for (const item of res.items) {
-    if (!map[item.stockCode]) map[item.stockCode] = item // desc order, first = newest
+  try {
+    const res = await historyApi.getList({ page: 1, limit: 100 })
+    const map: Record<string, HistoryItem> = {}
+    for (const item of res.items) {
+      if (!map[item.stockCode]) map[item.stockCode] = item // desc order, first = newest
+    }
+    latestHistoryMap.value = map
+  } catch (e) {
+    console.error('loadLatestHistoryMap failed', e)
   }
-  latestHistoryMap.value = map
 }
 
-async function handleWatchlistSelect(code: string, name?: string) {
+async function handleWatchlistSelect(code: string, _name?: string) {
   selectedStockCode.value = code
-  const displayName = name ?? latestHistoryMap.value[code]?.stockName ?? code
-  chipStock.value = { code, name: displayName }
-  stockCode.value = code
+  selectedHistoryItemId.value = undefined
   stockHistory.value = []
   historyIndex.value = 0
   selectedReport.value = null
@@ -156,7 +205,7 @@ onMounted(async () => {
     <!-- Left panel -->
     <div class="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0">
       <!-- Input area -->
-      <div class="p-4 border-b border-slate-100">
+      <div class="p-4">
         <h1 class="text-sm font-semibold text-slate-800 mb-3">股票分析</h1>
         <div class="flex gap-2">
           <!-- Stock chip (when selected from watchlist) -->
@@ -208,15 +257,40 @@ onMounted(async () => {
         <p v-if="analyzeError" class="text-xs text-red-500 mt-1.5">{{ analyzeError }}</p>
       </div>
 
-      <!-- Active tasks -->
-      <TaskPanel :tasks="activeTasks" />
+      <!-- Tabs -->
+      <div class="flex border-b border-slate-200 shrink-0">
+        <button
+          v-for="tab in ([{ key: 'watchlist', label: '自选股' }, { key: 'history', label: '历史记录' }] as const)"
+          :key="tab.key"
+          :class="[
+            'flex-1 py-3 text-sm font-medium transition-colors',
+            activeTab === tab.key
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-slate-500 hover:text-slate-700',
+          ]"
+          @click="activeTab = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
 
-      <!-- Watchlist -->
+      <!-- Tab content -->
       <div class="flex-1 overflow-y-auto min-h-0">
         <WatchlistPanel
+          v-if="activeTab === 'watchlist'"
           :latest-history="latestHistoryMap"
           :selected-code="selectedStockCode"
           @select="handleWatchlistSelect"
+          @analyze="handleAnalyze"
+        />
+        <HistoryList
+          v-else
+          :items="tabHistoryItems"
+          :selected-id="selectedHistoryItemId"
+          :has-more="tabHistoryHasMore"
+          :loading="tabHistoryLoading"
+          @select="handleHistoryItemSelect"
+          @load-more="loadMoreTabHistory"
         />
       </div>
     </div>
