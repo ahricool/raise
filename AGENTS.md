@@ -116,6 +116,6 @@
 
 ```bash
 ./test.sh syntax
-python -m py_compile main.py src/*.py data_provider/*.py
-flake8 main.py src/ --max-line-length=120
+python -m py_compile api/app.py src/*.py data_provider/*.py
+flake8 api/ src/ --max-line-length=120
 ```

@@ -8,7 +8,7 @@
 
 ```
 daily_stock_analysis/
-├── main.py              # 主程序入口
+├── api/                 # FastAPI 应用（入口 api.app:app）
 ├── src/                 # 核心业务逻辑
 │   ├── analyzer.py      # AI 分析器
 │   ├── config.py        # 配置管理
@@ -285,7 +285,7 @@ services:
   server:
     <<: *common
     container_name: stock-server
-    command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uv", "run", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
 ```
@@ -311,7 +311,7 @@ docker compose -f docker-compose.yml up -d server
 
 ```bash
 docker build -f Dockerfile -t stock-analysis .
-docker run -d --env-file .env -p 8000:8000 -v ./data:/app/data stock-analysis python main.py --serve-only --host 0.0.0.0 --port 8000
+docker run -d --env-file .env -p 8000:8000 -v ./data:/app/data stock-analysis uv run uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -592,8 +592,7 @@ FastAPI 提供 RESTful API 服务，支持配置管理和触发分析。
 
 | 命令 | 说明 |
 |------|------|
-| `python main.py --serve` | 启动 API 服务 + 执行一次完整分析 |
-| `python main.py --serve-only` | 仅启动 API 服务，手动触发分析 |
+| `uvicorn api.app:app --host 0.0.0.0 --port 8000` | 启动 API 服务（含 WebUI） |
 
 ### 功能特性
 
@@ -656,7 +655,7 @@ curl "http://127.0.0.1:8000/api/v1/backtest/results?page=1&limit=20"
 修改默认端口或允许局域网访问：
 
 ```bash
-python main.py --serve-only --host 0.0.0.0 --port 8888
+uvicorn api.app:app --host 0.0.0.0 --port 8888
 ```
 
 ### 支持的股票代码格式

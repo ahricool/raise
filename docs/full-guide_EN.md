@@ -8,7 +8,7 @@ This document contains the complete configuration guide for the AI Stock Analysi
 
 ```
 daily_stock_analysis/
-├── main.py              # Main entry point
+├── api/                 # FastAPI app (entry: api.app:app)
 ├── src/                 # Core business logic
 │   ├── analyzer.py      # AI analyzer
 │   ├── config.py        # Configuration management
@@ -276,7 +276,7 @@ services:
   server:
     <<: *common
     container_name: stock-server
-    command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uv", "run", "uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
 ```
@@ -302,7 +302,7 @@ docker compose -f docker-compose.yml up -d server
 
 ```bash
 docker build -t stock-analysis .
-docker run -d --env-file .env -p 8000:8000 -v ./data:/app/data stock-analysis python main.py --serve-only --host 0.0.0.0 --port 8000
+docker run -d --env-file .env -p 8000:8000 -v ./data:/app/data stock-analysis uv run uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -583,8 +583,7 @@ FastAPI provides RESTful API service for configuration management and triggering
 
 | Command | Description |
 |------|------|
-| `python main.py --serve` | Start API service + run full analysis once |
-| `python main.py --serve-only` | Start API service only, manually trigger analysis |
+| `uvicorn api.app:app --host 0.0.0.0 --port 8000` | Start API service (includes WebUI) |
 
 ### Features
 
@@ -647,7 +646,7 @@ curl "http://127.0.0.1:8000/api/v1/backtest/results?page=1&limit=20"
 Modify default port or allow LAN access:
 
 ```bash
-python main.py --serve-only --host 0.0.0.0 --port 8888
+uvicorn api.app:app --host 0.0.0.0 --port 8888
 ```
 
 ### Supported Stock Code Formats
