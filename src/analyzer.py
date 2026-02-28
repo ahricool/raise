@@ -878,7 +878,7 @@ class GeminiAnalyzer:
             logger.debug(f"[LLM] 请求前等待 {request_delay:.1f} 秒...")
             time.sleep(request_delay)
         
-        # 优先从上下文获取股票名称（由 main.py 传入）
+        # Prefer stock name from context (passed by caller)
         name = context.get('stock_name')
         if not name or name.startswith('股票'):
             # 备选：从 realtime 中获取

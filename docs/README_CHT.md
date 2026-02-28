@@ -189,8 +189,7 @@
 
 | 命令 | 說明 |
 |------|------|
-| `python main.py --serve` | 啟動 API 服務 + 執行一次完整分析 |
-| `python main.py --serve-only` | 僅啟動 API 服務，手動觸發分析 |
+| `uvicorn api.app:app --host 0.0.0.0 --port 8000` | 啟動 API 服務（含 WebUI） |
 
 - 訪問地址：`http://127.0.0.1:8000`
 - API 文檔：`http://127.0.0.1:8000/docs`
@@ -220,15 +219,13 @@
 
 ```
 daily_stock_analysis/
-├── main.py              # 主程序入口
-├── server.py            # FastAPI 服務入口
+├── api/                 # FastAPI 應用（入口 api.app:app）
 ├── src/                 # 核心業務代碼
 │   ├── analyzer.py      # AI 分析器（Gemini）
 │   ├── config.py        # 配置管理
 │   ├── notification.py  # 消息推送
 │   ├── storage.py       # 數據存儲
 │   └── ...
-├── api/                 # FastAPI API 模塊
 ├── bot/                 # 機器人模塊
 ├── data_provider/       # 數據源適配器
 ├── docker/              # Docker 配置

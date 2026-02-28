@@ -47,7 +47,7 @@ def build_prompt(diff_content, files, truncated):
     core_files = [
         f
         for f in files
-        if f in ["main.py", "config.py", "analyzer.py", "notification.py"]
+        if f in ["api/app.py", "config.py", "analyzer.py", "notification.py"]
     ]
     core_notice = ""
     if core_files:

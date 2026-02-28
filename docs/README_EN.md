@@ -391,8 +391,7 @@ Enable the FastAPI service for configuration management and triggering analysis 
 
 | Command | Description |
 |---------|-------------|
-| `python main.py --serve` | Start API service + run full analysis once |
-| `python main.py --serve-only` | Start API service only, manually trigger analysis |
+| `uvicorn api.app:app --host 0.0.0.0 --port 8000` | Start API service (includes WebUI) |
 
 - URL: `http://127.0.0.1:8000`
 - API docs: `http://127.0.0.1:8000/docs`

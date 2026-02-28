@@ -30,7 +30,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./main.py:/workspace/main.py
       - ./api:/workspace/api
       - ./src:/workspace/src
       - ./bot:/workspace/bot
