@@ -114,57 +114,73 @@ onMounted(loadList)
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Add panel (search) -->
-    <div v-if="showAddPanel" class="border-b border-slate-100 bg-blue-50/50">
-      <div class="px-3 pt-2.5 pb-1">
-        <div class="flex gap-2">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="输入代码或名称，如 600519 / 茅台"
-            class="flex-1 text-xs px-2.5 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            @input="onInput"
-            @keydown.enter="doSearch"
-            @keydown.escape="cancelAdd"
-          />
-          <button class="text-xs text-slate-400 hover:text-slate-600 px-1" @click="cancelAdd">✕</button>
-        </div>
-      </div>
-
-      <!-- Search results -->
-      <div class="max-h-48 overflow-y-auto px-3 pb-2">
-        <div v-if="searchLoading" class="py-3 flex justify-center">
-          <Loading size="sm" />
-        </div>
-        <p v-else-if="searchError" class="text-xs text-slate-400 py-2 text-center">{{ searchError }}</p>
-        <div v-else class="space-y-1 mt-1">
-          <button
-            v-for="r in searchResults"
-            :key="r.stockCode"
-            :disabled="addingCode === r.stockCode"
-            class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-white hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all text-left disabled:opacity-50"
-            @click="confirmAdd(r)"
-          >
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-mono text-slate-500">{{ r.stockCode }}</span>
-              <span class="text-sm font-medium text-slate-800">{{ r.stockName }}</span>
-              <span v-if="r.market" class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{{ r.market }}</span>
+    <!-- Add modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showAddPanel" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="cancelAdd" />
+          <div class="relative w-[400px] max-w-[90vw] bg-white rounded-xl shadow-xl">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h3 class="text-sm font-semibold text-slate-800">添加自选股</h3>
+              <button class="text-slate-400 hover:text-slate-600 transition-colors" @click="cancelAdd">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <svg
-              v-if="addingCode === r.stockCode"
-              class="animate-spin h-3.5 w-3.5 text-blue-500 shrink-0"
-              fill="none" viewBox="0 0 24 24"
-            >
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            <svg v-else class="h-3.5 w-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+            <!-- Search input -->
+            <div class="px-5 pt-4 pb-2">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="输入代码或名称，如 600519 / 茅台"
+                class="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                @input="onInput"
+                @keydown.enter="doSearch"
+                @keydown.escape="cancelAdd"
+              />
+            </div>
+            <!-- Search results -->
+            <div class="max-h-64 overflow-y-auto px-5 pb-4">
+              <div v-if="searchLoading" class="py-6 flex justify-center">
+                <Loading size="sm" />
+              </div>
+              <p v-else-if="searchError" class="text-xs text-slate-400 py-4 text-center">{{ searchError }}</p>
+              <p v-else-if="searchResults.length === 0 && !searchQuery.trim()" class="text-xs text-slate-400 py-4 text-center">
+                搜索股票代码或名称以添加
+              </p>
+              <div v-else class="space-y-1 mt-1">
+                <button
+                  v-for="r in searchResults"
+                  :key="r.stockCode"
+                  :disabled="addingCode === r.stockCode"
+                  class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all text-left disabled:opacity-50"
+                  @click="confirmAdd(r)"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono text-slate-500">{{ r.stockCode }}</span>
+                    <span class="text-sm font-medium text-slate-800">{{ r.stockName }}</span>
+                    <span v-if="r.market" class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{{ r.market }}</span>
+                  </div>
+                  <svg
+                    v-if="addingCode === r.stockCode"
+                    class="animate-spin h-3.5 w-3.5 text-blue-500 shrink-0"
+                    fill="none" viewBox="0 0 24 24"
+                  >
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  <svg v-else class="h-3.5 w-3.5 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
 
     <!-- List -->
     <div class="flex-1 overflow-y-auto">
@@ -243,7 +259,7 @@ onMounted(loadList)
     <div class="shrink-0 border-t border-slate-100 px-3 py-2.5">
       <button
         class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-        @click="showAddPanel = !showAddPanel"
+        @click="showAddPanel = true"
       >
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -253,3 +269,26 @@ onMounted(loadList)
     </div>
   </div>
 </template>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-active .relative,
+.modal-leave-active .relative {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .relative {
+  transform: scale(0.95);
+  opacity: 0;
+}
+.modal-leave-to .relative {
+  transform: scale(0.95);
+  opacity: 0;
+}
+</style>
