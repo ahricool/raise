@@ -173,6 +173,12 @@ function navNewer() {
   }
 }
 
+function navLatest() {
+  if (historyIndex.value !== 0) {
+    historyIndex.value = 0
+    loadReport(stockHistory.value[0])
+  }
+}
 
 function validateInput() {
   inputError.value = validateStockCode(stockCode.value)
@@ -324,10 +330,17 @@ onMounted(async () => {
           >
             ← 上一条
           </button>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <span class="text-xs text-slate-400">
               第 {{ historyIndex + 1 }} / {{ stockHistory.length }} 条
             </span>
+            <button
+              :disabled="historyIndex <= 0"
+              class="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-30 border border-slate-200 hover:border-slate-400 disabled:border-slate-100 rounded-md px-2 py-0.5 transition-colors"
+              @click="navLatest"
+            >
+              回到最新
+            </button>
             <button
               class="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-0.5 transition-colors flex items-center gap-1"
               @click="showTrend = true"
