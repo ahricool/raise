@@ -8,6 +8,7 @@ import ReportSummary from '@/components/report/ReportSummary.vue'
 import Loading from '@/components/common/Loading.vue'
 import WatchlistPanel from '@/components/watchlist/WatchlistPanel.vue'
 import HistoryList from '@/components/history/HistoryList.vue'
+import TrendPanel from '@/components/trend/TrendPanel.vue'
 import type { HistoryItem, AnalysisReport, TaskInfo } from '@/types/analysis'
 
 const stockCode = ref('')
@@ -36,6 +37,7 @@ const stockHistory = ref<HistoryItem[]>([])
 const historyIndex = ref(0)
 const reportLoading = ref(false)
 const selectedReport = ref<AnalysisReport | null>(null)
+const showTrend = ref(false)
 
 // Active tasks
 const activeTasks = ref<TaskInfo[]>([])
@@ -171,12 +173,6 @@ function navNewer() {
   }
 }
 
-function navLatest() {
-  if (historyIndex.value !== 0) {
-    historyIndex.value = 0
-    loadReport(stockHistory.value[0])
-  }
-}
 
 function validateInput() {
   inputError.value = validateStockCode(stockCode.value)
@@ -333,11 +329,13 @@ onMounted(async () => {
               第 {{ historyIndex + 1 }} / {{ stockHistory.length }} 条
             </span>
             <button
-              :disabled="historyIndex <= 0"
-              class="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-30 border border-blue-200 hover:border-blue-400 disabled:border-slate-200 rounded-md px-2 py-0.5 transition-colors"
-              @click="navLatest"
+              class="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-0.5 transition-colors flex items-center gap-1"
+              @click="showTrend = true"
             >
-              回到最新
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+              查看趋势
             </button>
           </div>
           <button
@@ -365,5 +363,14 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Trend panel modal -->
+    <TrendPanel
+      v-if="showTrend && selectedStockCode"
+      :items="stockHistory"
+      :stock-code="selectedStockCode"
+      :stock-name="stockHistory[0]?.stockName"
+      @close="showTrend = false"
+    />
   </div>
 </template>
