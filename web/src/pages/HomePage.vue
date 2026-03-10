@@ -8,6 +8,7 @@ import ReportSummary from '@/components/report/ReportSummary.vue'
 import Loading from '@/components/common/Loading.vue'
 import WatchlistPanel from '@/components/watchlist/WatchlistPanel.vue'
 import HistoryList from '@/components/history/HistoryList.vue'
+import TrendPanel from '@/components/trend/TrendPanel.vue'
 import type { HistoryItem, AnalysisReport, TaskInfo } from '@/types/analysis'
 
 const stockCode = ref('')
@@ -36,6 +37,7 @@ const stockHistory = ref<HistoryItem[]>([])
 const historyIndex = ref(0)
 const reportLoading = ref(false)
 const selectedReport = ref<AnalysisReport | null>(null)
+const showTrend = ref(false)
 
 // Active tasks
 const activeTasks = ref<TaskInfo[]>([])
@@ -48,13 +50,15 @@ const tabHistoryItems = ref<HistoryItem[]>([])
 const tabHistoryLoading = ref(false)
 const tabHistoryHasMore = ref(false)
 const tabHistoryPage = ref(1)
-const tabHistoryLoaded = ref(false)
+const tabHistoryLoadedForCode = ref<string | null>(null) // null = all, string = filtered by stock
 const selectedHistoryItemId = ref<string | undefined>(undefined)
 
-async function loadTabHistory(page = 1) {
+async function loadTabHistory(page = 1, stockCode?: string) {
   tabHistoryLoading.value = true
   try {
-    const res = await historyApi.getList({ page, limit: 30 })
+    const params: { page: number; limit: number; stockCode?: string } = { page, limit: 30 }
+    if (stockCode) params.stockCode = stockCode
+    const res = await historyApi.getList(params)
     if (page === 1) {
       tabHistoryItems.value = res.items
     } else {
@@ -62,7 +66,7 @@ async function loadTabHistory(page = 1) {
     }
     tabHistoryPage.value = page
     tabHistoryHasMore.value = page < res.totalPages
-    tabHistoryLoaded.value = true
+    tabHistoryLoadedForCode.value = stockCode ?? null
   } finally {
     tabHistoryLoading.value = false
   }
@@ -70,7 +74,7 @@ async function loadTabHistory(page = 1) {
 
 async function loadMoreTabHistory() {
   if (tabHistoryLoading.value || !tabHistoryHasMore.value) return
-  await loadTabHistory(tabHistoryPage.value + 1)
+  await loadTabHistory(tabHistoryPage.value + 1, selectedStockCode.value)
 }
 
 async function handleHistoryItemSelect(item: HistoryItem) {
@@ -82,8 +86,11 @@ async function handleHistoryItemSelect(item: HistoryItem) {
 }
 
 watch(activeTab, (tab) => {
-  if (tab === 'history' && !tabHistoryLoaded.value) {
-    loadTabHistory()
+  if (tab === 'history') {
+    const filterCode = selectedStockCode.value
+    if (tabHistoryLoadedForCode.value !== (filterCode ?? null)) {
+      loadTabHistory(1, filterCode)
+    }
   }
 })
 
@@ -102,7 +109,9 @@ useTaskStream({
   onTaskCompleted(task) {
     activeTasks.value = activeTasks.value.filter((t) => t.taskId !== task.taskId)
     loadLatestHistoryMap()
-    if (tabHistoryLoaded.value) loadTabHistory()
+    if (tabHistoryLoadedForCode.value !== undefined) {
+      loadTabHistory(1, selectedStockCode.value)
+    }
     if (selectedStockCode.value === task.stockCode) {
       handleWatchlistSelect(task.stockCode)
     }
@@ -134,6 +143,10 @@ async function handleWatchlistSelect(code: string, _name?: string) {
   const res = await historyApi.getList({ stockCode: code, limit: 100 })
   stockHistory.value = res.items
   if (res.items.length > 0) await loadReport(res.items[0])
+  // Reload history tab filtered to this stock
+  if (activeTab.value === 'history' || tabHistoryLoadedForCode.value !== code) {
+    loadTabHistory(1, code)
+  }
 }
 
 async function loadReport(item: HistoryItem) {
@@ -157,6 +170,13 @@ function navNewer() {
   if (historyIndex.value > 0) {
     historyIndex.value--
     loadReport(stockHistory.value[historyIndex.value])
+  }
+}
+
+function navLatest() {
+  if (historyIndex.value !== 0) {
+    historyIndex.value = 0
+    loadReport(stockHistory.value[0])
   }
 }
 
@@ -310,9 +330,27 @@ onMounted(async () => {
           >
             ← 上一条
           </button>
-          <span class="text-xs text-slate-400">
-            第 {{ historyIndex + 1 }} / {{ stockHistory.length }} 条
-          </span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">
+              第 {{ historyIndex + 1 }} / {{ stockHistory.length }} 条
+            </span>
+            <button
+              :disabled="historyIndex <= 0"
+              class="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-30 border border-slate-200 hover:border-slate-400 disabled:border-slate-100 rounded-md px-2 py-0.5 transition-colors"
+              @click="navLatest"
+            >
+              回到最新
+            </button>
+            <button
+              class="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 rounded-md px-2 py-0.5 transition-colors flex items-center gap-1"
+              @click="showTrend = true"
+            >
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+              查看趋势
+            </button>
+          </div>
           <button
             :disabled="historyIndex <= 0"
             class="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 flex items-center gap-1"
@@ -338,5 +376,14 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Trend panel modal -->
+    <TrendPanel
+      v-if="showTrend && selectedStockCode"
+      :items="stockHistory"
+      :stock-code="selectedStockCode"
+      :stock-name="stockHistory[0]?.stockName"
+      @close="showTrend = false"
+    />
   </div>
 </template>
