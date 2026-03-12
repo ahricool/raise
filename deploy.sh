@@ -13,7 +13,7 @@ git pull --ff-only
 echo "Step 2/3: Stop and clean containers..."
 ./prod.sh down --remove-orphans
 
-echo "Step 3/3: Start services in detached mode..."
-./prod.sh up -d
+echo "Step 3/3: Start services in detached mode with rebuilt images..."
+./prod.sh up -d --build --force-recreate
 
 echo "Deployment completed."
