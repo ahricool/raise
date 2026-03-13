@@ -74,7 +74,7 @@ async function loadTabHistory(page = 1, stockCode?: string) {
 
 async function loadMoreTabHistory() {
   if (tabHistoryLoading.value || !tabHistoryHasMore.value) return
-  await loadTabHistory(tabHistoryPage.value + 1, selectedStockCode.value)
+  await loadTabHistory(tabHistoryPage.value + 1, tabHistoryLoadedForCode.value ?? undefined)
 }
 
 async function handleHistoryItemSelect(item: HistoryItem) {
@@ -109,9 +109,7 @@ useTaskStream({
   onTaskCompleted(task) {
     activeTasks.value = activeTasks.value.filter((t) => t.taskId !== task.taskId)
     loadLatestHistoryMap()
-    if (tabHistoryLoadedForCode.value !== undefined) {
-      loadTabHistory(1, selectedStockCode.value)
-    }
+    loadTabHistory(1, tabHistoryLoadedForCode.value ?? undefined)
     if (selectedStockCode.value === task.stockCode) {
       handleWatchlistSelect(task.stockCode)
     }
@@ -141,6 +139,7 @@ async function handleWatchlistSelect(code: string, _name?: string) {
   historyIndex.value = 0
   selectedReport.value = null
   const res = await historyApi.getList({ stockCode: code, limit: 100 })
+  if (selectedStockCode.value !== code) return // 竞态保护：用户已切换到其他股票
   stockHistory.value = res.items
   if (res.items.length > 0) await loadReport(res.items[0])
   // Reload history tab filtered to this stock
