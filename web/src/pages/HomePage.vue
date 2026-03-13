@@ -381,7 +381,7 @@ onMounted(async () => {
       v-if="showTrend && selectedStockCode"
       :items="stockHistory"
       :stock-code="selectedStockCode"
-      :stock-name="stockHistory[0]?.stockName"
+      :stock-name="stockHistory.find(i => i.stockCode === selectedStockCode)?.stockName"
       @close="showTrend = false"
     />
   </div>

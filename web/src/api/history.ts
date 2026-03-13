@@ -9,7 +9,13 @@ export const historyApi = {
     page?: number
     limit?: number
   }): Promise<HistoryListResponse> {
-    const res = await http.get('/api/v1/history', { params })
+    const snakeParams: Record<string, unknown> = {}
+    if (params?.stockCode !== undefined) snakeParams.stock_code = params.stockCode
+    if (params?.startDate !== undefined) snakeParams.start_date = params.startDate
+    if (params?.endDate !== undefined) snakeParams.end_date = params.endDate
+    if (params?.page !== undefined) snakeParams.page = params.page
+    if (params?.limit !== undefined) snakeParams.limit = params.limit
+    const res = await http.get('/api/v1/history', { params: snakeParams })
     return res.data
   },
 
