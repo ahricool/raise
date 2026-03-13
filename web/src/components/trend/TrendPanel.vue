@@ -10,12 +10,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>()
 
-// Last 30 days, sorted ascending
+// Last 30 days for this stock only, sorted ascending
 const trendData = computed(() => {
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 30)
   return [...props.items]
-    .filter((item) => new Date(item.createdAt) >= cutoff)
+    .filter((item) => item.stockCode === props.stockCode && new Date(item.createdAt) >= cutoff)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 })
 
