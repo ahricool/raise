@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { historyApi } from '@/api/history'
 import type { NewsIntelItem } from '@/types/analysis'
 import Loading from '@/components/common/Loading.vue'
@@ -23,7 +23,7 @@ async function load() {
   }
 }
 
-onMounted(load)
+watch(() => props.queryId, load, { immediate: true })
 </script>
 
 <template>

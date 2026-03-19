@@ -222,6 +222,7 @@ class StockAnalysisPipeline:
             
             # Step 4: 多维度情报搜索（最新消息+风险排查+业绩预期）
             news_context = None
+            per_stock_query_id = uuid.uuid4().hex  # 提前生成，确保新闻与历史记录 ID 一致
             if self.search_service.is_available:
                 logger.info(f"[{code}] 开始多维度情报搜索...")
                 
@@ -244,6 +245,7 @@ class StockAnalysisPipeline:
                     # 保存新闻情报到数据库（用于后续复盘与查询）
                     try:
                         query_context = self._build_query_context()
+                        query_context["query_id"] = per_stock_query_id
                         for dim_name, response in intel_results.items():
                             if response and response.success and response.results:
                                 self.db.save_news_intel(
@@ -293,13 +295,9 @@ class StockAnalysisPipeline:
                 result.change_pct = realtime_data.get('change_pct')
 
             # Step 8: 保存分析历史记录
-            # Fix #281/#298: generate a unique query_id per stock so each
-            # history detail page shows its own analysis result instead of
-            # reusing the batch-level id which caused all stocks to resolve
-            # to the same detail record.
+            # per_stock_query_id 已在 Step 4 新闻保存时生成，此处复用以保持关联一致
             if result:
                 try:
-                    per_stock_query_id = uuid.uuid4().hex
                     context_snapshot = self._build_context_snapshot(
                         enhanced_context=enhanced_context,
                         news_content=news_context,
