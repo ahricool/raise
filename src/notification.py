@@ -16,7 +16,6 @@ A股自选股智能分析系统 - 通知层
 """
 import hashlib
 import hmac
-import logging
 import json
 import smtplib
 import re
@@ -31,6 +30,8 @@ from email.utils import formataddr
 from enum import Enum
 
 import requests
+from loguru import logger
+
 try:
     import discord
     discord_available = True
@@ -41,8 +42,6 @@ from src.config import get_config
 from src.analyzer import AnalysisResult
 from src.formatters import format_feishu_markdown
 from bot.models import BotMessage
-
-logger = logging.getLogger(__name__)
 
 
 class NotificationChannel(Enum):
@@ -3279,8 +3278,11 @@ def send_daily_report(results: List[AnalysisResult]) -> bool:
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    import sys
+
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     # 模拟分析结果
     test_results = [
         AnalysisResult(

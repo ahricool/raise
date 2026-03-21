@@ -11,13 +11,10 @@ Telegram 意图识别模块
 """
 
 import json
-import logging
+from loguru import logger
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
-
-logger = logging.getLogger(__name__)
-
 
 # ──────────────────────────────────────────────────────────────
 # 意图类型

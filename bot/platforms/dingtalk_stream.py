@@ -19,13 +19,11 @@ pip install dingtalk-stream
 https://github.com/open-dingtalk/dingtalk-stream-sdk-python
 """
 
-import logging
+from loguru import logger
 import asyncio
 import threading
 from datetime import datetime
 from typing import Optional, Callable, Any
-
-logger = logging.getLogger(__name__)
 
 # 尝试导入钉钉 Stream SDK
 try:

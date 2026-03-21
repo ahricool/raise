@@ -9,14 +9,11 @@
 2. 提供 CRUD 接口
 """
 
-import logging
+from loguru import logger
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
 from src.storage import DatabaseManager, AnalysisHistory
-
-logger = logging.getLogger(__name__)
-
 
 class AnalysisRepository:
     """

@@ -13,15 +13,14 @@
 - schedule: 轻量级定时任务库
 """
 
-import logging
 import signal
 import sys
-import time
 import threading
+import time
 from datetime import datetime
 from typing import Callable, Optional
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class GracefulShutdown:
@@ -170,11 +169,13 @@ def run_with_schedule(
 
 if __name__ == "__main__":
     # 测试定时调度
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        level="INFO",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name:20} | {message}",
     )
-    
+
     def test_task():
         print(f"任务执行中... {datetime.now()}")
         time.sleep(2)

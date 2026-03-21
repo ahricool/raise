@@ -8,7 +8,7 @@ POST /api/v1/watchlist               → 添加自选股
 DELETE /api/v1/watchlist/{id}        → 删除自选股
 """
 
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -23,7 +23,6 @@ from api.v1.schemas.watchlist import (
 )
 from src.services.watchlist_service import WatchlistService
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
 

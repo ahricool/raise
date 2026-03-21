@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-import logging
+from loguru import logger
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -23,9 +23,6 @@ from typing import Optional, Dict, Any, List, Union
 from src.enums import ReportType
 from src.storage import get_db
 from bot.models import BotMessage
-
-logger = logging.getLogger(__name__)
-
 
 class TaskService:
     """

@@ -1,14 +1,11 @@
 # feishu_doc.py
 # -*- coding: utf-8 -*-
-import logging
+from loguru import logger
 import json
 import lark_oapi as lark
 from lark_oapi.api.docx.v1 import *
 from typing import List, Dict, Any, Optional
 from src.config import get_config
-
-logger = logging.getLogger(__name__)
-
 
 class FeishuDocManager:
     """飞书云文档管理器 (基于官方 SDK lark-oapi)"""

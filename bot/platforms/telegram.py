@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 """Telegram platform adapter."""
 
-import logging
+from loguru import logger
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from bot.models import BotMessage, BotResponse, ChatType, WebhookResponse
 from bot.platforms.base import BotPlatform
 from src.config import get_config
-
-logger = logging.getLogger(__name__)
-
 
 class TelegramPlatform(BotPlatform):
     """Telegram webhook adapter."""

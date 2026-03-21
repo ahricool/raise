@@ -10,15 +10,15 @@
 3. 记录错误日志
 """
 
-import logging
 import traceback
 from typing import Callable
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger(__name__)
+from src.logging_config import is_loguru_debug_enabled
 
 
 class ErrorHandlerMiddleware(BaseHTTPMiddleware):
@@ -62,7 +62,7 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": "internal_error",
                     "message": "服务器内部错误，请稍后重试",
-                    "detail": str(e) if logger.isEnabledFor(logging.DEBUG) else None
+                    "detail": str(e) if is_loguru_debug_enabled() else None
                 }
             )
 

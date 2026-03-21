@@ -20,6 +20,8 @@ class RootResponse(BaseModel):
     message: str = Field(..., description="API 运行状态消息", example="Daily Stock Analysis API is running")
     version: Optional[str] = Field(None, description="API 版本", example="1.0.0")
     
+    # The Config inner class is used by Pydantic to provide model configuration.
+    # Here, it specifies an example JSON schema for documentation and OpenAPI generation.
     class Config:
         json_schema_extra = {
             "example": {

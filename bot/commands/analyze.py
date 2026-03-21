@@ -8,14 +8,11 @@
 """
 
 import re
-import logging
+from loguru import logger
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
 from bot.models import BotMessage, BotResponse
-
-logger = logging.getLogger(__name__)
-
 
 class AnalyzeCommand(BotCommand):
     """

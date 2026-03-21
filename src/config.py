@@ -11,10 +11,12 @@ A股自选股智能分析系统 - 配置管理模块
 """
 
 import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
+
 from dotenv import load_dotenv, dotenv_values
-from dataclasses import dataclass, field
+from loguru import logger
 
 
 def setup_env(override: bool = False):
@@ -464,8 +466,6 @@ class Config:
         if tushare_token:
             # Token configured but no explicit priority override
             # Prepend tushare so the paid source is tried first
-            import logging
-            logger = logging.getLogger(__name__)
             resolved = f'tushare,{default_priority}'
             logger.info(
                 f"TUSHARE_TOKEN detected, auto-injecting tushare into realtime priority: {resolved}"

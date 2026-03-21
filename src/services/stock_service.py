@@ -9,14 +9,11 @@
 2. 提供实时行情和历史数据接口
 """
 
-import logging
+from loguru import logger
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 from src.repositories.stock_repo import StockRepository
-
-logger = logging.getLogger(__name__)
-
 
 class StockService:
     """

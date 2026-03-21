@@ -9,7 +9,7 @@
 2. 提供 GET /api/v1/stocks/{code}/history 历史行情接口
 """
 
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -20,8 +20,6 @@ from api.v1.schemas.stocks import (
 )
 from api.v1.schemas.common import ErrorResponse
 from src.services.stock_service import StockService
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

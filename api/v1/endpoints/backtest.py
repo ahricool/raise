@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import logging
+from loguru import logger
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,8 +19,6 @@ from api.v1.schemas.backtest import (
 from api.v1.schemas.common import ErrorResponse
 from src.services.backtest_service import BacktestService
 from src.storage import DatabaseManager
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

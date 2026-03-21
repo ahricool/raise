@@ -7,7 +7,7 @@
 2. 自选股增删查
 """
 
-import logging
+from loguru import logger
 import re
 from typing import Optional, List, Dict, Any
 
@@ -15,8 +15,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from src.storage import User, UserStock
-
-logger = logging.getLogger(__name__)
 
 # 无需用户认证时使用的默认 user_id
 _DEFAULT_USER_ID = 1
@@ -84,6 +82,8 @@ class WatchlistService:
         """在 A 股代码名称列表中按名称模糊匹配"""
         try:
             import akshare as ak
+            logger.info(f"[WatchlistService] 正在查询 A 股代码名称列表: {name_query}")
+            print("hello world2222")
             df = ak.stock_info_a_code_name()
             # 列名: code, name
             if df is None or df.empty:

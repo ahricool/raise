@@ -11,8 +11,8 @@ A股自选股智能分析系统 - 搜索服务模块
 4. 搜索结果缓存和格式化
 """
 
-import logging
 import random
+import sys
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -20,9 +20,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from itertools import cycle
 import requests
+from loguru import logger
 from newspaper import Article, Config
-
-logger = logging.getLogger(__name__)
 
 
 def fetch_url_content(url: str, timeout: int = 5) -> str:
@@ -1529,11 +1528,13 @@ def reset_search_service() -> None:
 
 if __name__ == "__main__":
     # 测试搜索服务
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s'
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        level="DEBUG",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name:20} | {message}",
     )
-    
+
     # 手动测试（需要配置 API Key）
     service = get_search_service()
     

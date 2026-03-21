@@ -10,7 +10,7 @@
 3. 使用大模型生成每日大盘复盘报告
 """
 
-import logging
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -21,8 +21,7 @@ import pandas as pd
 from src.config import get_config
 from src.search_service import SearchService
 from data_provider.base import DataFetcherManager
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -571,14 +570,15 @@ class MarketAnalyzer:
 
 # 测试入口
 if __name__ == "__main__":
-    import sys
     sys.path.insert(0, '.')
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
+
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        level="INFO",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name:20} | {message}",
     )
-    
+
     analyzer = MarketAnalyzer()
     
     # 测试获取市场概览

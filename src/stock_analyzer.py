@@ -16,15 +16,14 @@
 - 量能形态：缩量回调优先
 """
 
-import logging
+import sys
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
 
 import pandas as pd
 import numpy as np
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class TrendStatus(Enum):
@@ -792,8 +791,9 @@ def analyze_stock(df: pd.DataFrame, code: str) -> TrendAnalysisResult:
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.INFO)
-    
+    logger.remove()
+    logger.add(sys.stderr, level="INFO")
+
     # 模拟数据测试
     import numpy as np
     

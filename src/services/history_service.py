@@ -10,14 +10,11 @@
 """
 
 import json
-import logging
+from loguru import logger
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 from src.storage import DatabaseManager
-
-logger = logging.getLogger(__name__)
-
 
 class HistoryService:
     """

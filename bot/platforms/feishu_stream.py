@@ -22,12 +22,10 @@ https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/server-side-sdk/python--sd
 """
 
 import json
-import logging
+from loguru import logger
 import threading
 from datetime import datetime
 from typing import Optional, Callable
-
-logger = logging.getLogger(__name__)
 
 # 尝试导入飞书 SDK
 try:

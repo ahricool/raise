@@ -10,14 +10,11 @@
 - /all                  : 立即分析所有自选股（触发定时任务逻辑）
 """
 
-import logging
+from loguru import logger
 from typing import List, Optional
 
 from bot.commands.base import BotCommand
 from bot.models import BotMessage, BotResponse
-
-logger = logging.getLogger(__name__)
-
 
 # ──────────────────────────────────────────────────────────────
 # /add 命令

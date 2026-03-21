@@ -8,7 +8,7 @@ Bot Webhook 处理器
 """
 
 import json
-import logging
+from loguru import logger
 from typing import Dict, Any, Optional, TYPE_CHECKING
 
 from bot.models import WebhookResponse
@@ -17,8 +17,6 @@ from bot.platforms import ALL_PLATFORMS
 
 if TYPE_CHECKING:
     from bot.platforms.base import BotPlatform
-
-logger = logging.getLogger(__name__)
 
 # 平台实例缓存
 _platform_instances: Dict[str, 'BotPlatform'] = {}

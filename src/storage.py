@@ -14,7 +14,7 @@ A股自选股智能分析系统 - 存储层
 import atexit
 import hashlib
 import json
-import logging
+import sys
 import re
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any, TYPE_CHECKING, Tuple
@@ -43,11 +43,10 @@ from sqlalchemy.orm import (
     sessionmaker,
     Session,
 )
+from loguru import logger
 from sqlalchemy.exc import IntegrityError
 
 from src.config import get_config
-
-logger = logging.getLogger(__name__)
 
 # SQLAlchemy ORM 基类
 Base = declarative_base()
@@ -1210,8 +1209,9 @@ def get_db() -> DatabaseManager:
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     db = get_db()
     
     print("=== 数据库测试 ===")

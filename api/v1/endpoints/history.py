@@ -9,7 +9,7 @@
 2. 提供 GET /api/v1/history/{query_id} 历史详情查询接口
 """
 
-import logging
+from loguru import logger
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Depends
@@ -29,8 +29,6 @@ from api.v1.schemas.history import (
 from api.v1.schemas.common import ErrorResponse
 from src.storage import DatabaseManager
 from src.services.history_service import HistoryService
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

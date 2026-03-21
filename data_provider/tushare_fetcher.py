@@ -15,7 +15,6 @@ TushareFetcher - 备用数据源 1 (Priority 2)
 """
 
 import json as _json
-import logging
 import re
 import time
 from datetime import datetime
@@ -23,21 +22,18 @@ from typing import Optional, Tuple, List, Dict, Any
 
 import pandas as pd
 import requests
+from loguru import logger
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
 )
 
-from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS
+from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS, tenacity_before_sleep_loguru
 from .realtime_types import UnifiedRealtimeQuote
 from src.config import get_config
 import os
-
-logger = logging.getLogger(__name__)
-
 
 # ETF code prefixes by exchange
 # Shanghai: 51xxxx, 52xxxx, 56xxxx, 58xxxx
@@ -292,7 +288,7 @@ class TushareFetcher(BaseFetcher):
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=tenacity_before_sleep_loguru,
     )
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """
@@ -762,8 +758,11 @@ class TushareFetcher(BaseFetcher):
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    import sys
+
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     fetcher = TushareFetcher()
     
     try:

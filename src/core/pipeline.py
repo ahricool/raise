@@ -11,7 +11,7 @@ A股自选股智能分析系统 - 核心分析流水线
 4. 提供股票分析的核心功能
 """
 
-import logging
+from loguru import logger
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -28,9 +28,6 @@ from src.search_service import SearchService
 from src.enums import ReportType
 from src.stock_analyzer import StockTrendAnalyzer, TrendAnalysisResult
 from bot.models import BotMessage
-
-
-logger = logging.getLogger(__name__)
 
 
 class StockAnalysisPipeline:

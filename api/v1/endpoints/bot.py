@@ -15,12 +15,10 @@ Telegram 接收逻辑：
 """
 
 import json
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

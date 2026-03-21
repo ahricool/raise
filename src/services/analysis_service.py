@@ -10,14 +10,11 @@
 3. 保存分析结果到数据库
 """
 
-import logging
+from loguru import logger
 import uuid
 from typing import Optional, Dict, Any
 
 from src.repositories.analysis_repo import AnalysisRepository
-
-logger = logging.getLogger(__name__)
-
 
 class AnalysisService:
     """
