@@ -50,7 +50,8 @@ const tabHistoryItems = ref<HistoryItem[]>([])
 const tabHistoryLoading = ref(false)
 const tabHistoryHasMore = ref(false)
 const tabHistoryPage = ref(1)
-const tabHistoryLoadedForCode = ref<string | null>(null) // null = all, string = filtered by stock
+// undefined = never fetched; null = loaded all stocks; string = loaded filtered by stock
+const tabHistoryLoadedForCode = ref<string | null | undefined>(undefined)
 const selectedHistoryItemId = ref<string | undefined>(undefined)
 
 async function loadTabHistory(page = 1, stockCode?: string) {

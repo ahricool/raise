@@ -83,7 +83,6 @@ class WatchlistService:
         try:
             import akshare as ak
             logger.info(f"[WatchlistService] 正在查询 A 股代码名称列表: {name_query}")
-            print("hello world2222")
             df = ak.stock_info_a_code_name()
             # 列名: code, name
             if df is None or df.empty:

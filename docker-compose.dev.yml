@@ -43,6 +43,8 @@ services:
       postgres:
         condition: service_healthy
     # Dev: auto-reload when mounted Python files change (not for production).
+    # --timeout-graceful-shutdown: SSE (/api/v1/analysis/tasks/stream) keeps HTTP connections
+    # open; without a cap, uvicorn --reload can hang forever on "Waiting for connections to close".
     command:
       [
         "uv",
@@ -54,6 +56,8 @@ services:
         "--port",
         "${API_PORT:-8000}",
         "--reload",
+        "--timeout-graceful-shutdown",
+        "15",
       ]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
