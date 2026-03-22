@@ -7,16 +7,13 @@
 负责解析命令、匹配处理器、分发执行。
 """
 
-import logging
+from loguru import logger
 import time
 from collections import defaultdict
 from typing import Dict, List, Optional, Type, Callable
 
 from bot.models import BotMessage, BotResponse
 from bot.commands.base import BotCommand
-
-logger = logging.getLogger(__name__)
-
 
 class RateLimiter:
     """

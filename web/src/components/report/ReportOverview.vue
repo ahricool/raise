@@ -33,6 +33,9 @@ const changePctColor = computed(() => {
           <span class="text-sm text-slate-500 font-mono">{{ meta.stockCode }}</span>
           <Badge variant="blue">{{ meta.reportType === 'simple' ? '普通' : '标准' }}</Badge>
         </div>
+        <p v-if="meta.createdAt" class="text-xs text-slate-400 mt-1">
+          {{ new Date(meta.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) }}
+        </p>
         <div class="mt-2 flex items-center gap-3">
           <span v-if="meta.currentPrice" class="text-2xl font-bold text-slate-900">
             {{ meta.currentPrice.toFixed(2) }}

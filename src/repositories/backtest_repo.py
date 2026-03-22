@@ -7,16 +7,13 @@ Provides database access helpers for backtest tables.
 from __future__ import annotations
 
 import json
-import logging
+from loguru import logger
 from datetime import date, datetime, timedelta
 from typing import List, Optional, Tuple
 
 from sqlalchemy import and_, delete, desc, func, select
 
 from src.storage import BacktestResult, BacktestSummary, DatabaseManager, AnalysisHistory
-
-logger = logging.getLogger(__name__)
-
 
 class BacktestRepository:
     """DB access layer for backtesting."""

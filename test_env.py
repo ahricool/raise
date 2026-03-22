@@ -24,18 +24,14 @@ os.environ["http_proxy"] = "http://127.0.0.1:10809"
 os.environ["https_proxy"] = "http://127.0.0.1:10809"
 
 import argparse
-import logging
 import sys
 from datetime import datetime, date, timedelta
 from typing import Optional
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(levelname)-8s | %(message)s',
-    datefmt='%H:%M:%S'
-)
-logger = logging.getLogger(__name__)
+from loguru import logger
+from src.logging_config import configure_stderr_logging
+
+configure_stderr_logging("INFO", fmt="{time:HH:mm:ss} | {level:<8} | {message}")
 
 
 def print_header(title: str):

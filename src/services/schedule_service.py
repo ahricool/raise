@@ -16,14 +16,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
+from loguru import logger
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-
-logger = logging.getLogger(__name__)
 
 _JOB_ID = "daily_watchlist_analysis"
 _POSITION_MORNING_JOB_ID = "daily_position_morning_review"

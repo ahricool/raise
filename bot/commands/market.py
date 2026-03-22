@@ -7,15 +7,12 @@
 执行大盘复盘分析，生成市场概览报告。
 """
 
-import logging
+from loguru import logger
 import threading
 from typing import List
 
 from bot.commands.base import BotCommand
 from bot.models import BotMessage, BotResponse
-
-logger = logging.getLogger(__name__)
-
 
 class MarketCommand(BotCommand):
     """

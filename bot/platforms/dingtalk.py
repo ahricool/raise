@@ -14,16 +14,13 @@ import hashlib
 import hmac
 import base64
 import time
-import logging
+from loguru import logger
 from datetime import datetime
 from typing import Dict, Any, Optional
 from urllib.parse import quote_plus
 
 from bot.platforms.base import BotPlatform
 from bot.models import BotMessage, BotResponse, WebhookResponse, ChatType
-
-logger = logging.getLogger(__name__)
-
 
 class DingtalkPlatform(BotPlatform):
     """

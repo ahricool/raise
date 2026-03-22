@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import logging
+from loguru import logger
 import re
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
@@ -15,9 +15,6 @@ from src.core.config_registry import (
     get_field_definition,
     get_registered_field_keys,
 )
-
-logger = logging.getLogger(__name__)
-
 
 class ConfigValidationError(Exception):
     """Raised when one or more submitted fields fail validation."""

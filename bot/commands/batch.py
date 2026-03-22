@@ -7,16 +7,13 @@
 批量分析自选股列表中的所有股票。
 """
 
-import logging
+from loguru import logger
 import threading
 import uuid
 from typing import List
 
 from bot.commands.base import BotCommand
 from bot.models import BotMessage, BotResponse
-
-logger = logging.getLogger(__name__)
-
 
 class BatchCommand(BotCommand):
     """

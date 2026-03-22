@@ -14,26 +14,22 @@ YfinanceFetcher - 兜底数据源 (Priority 4)
 3. 失败后指数退避重试
 """
 
-import logging
 import re
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 import pandas as pd
+from loguru import logger
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
 )
 
-from .base import BaseFetcher, DataFetchError, STANDARD_COLUMNS
+from .base import BaseFetcher, DataFetchError, STANDARD_COLUMNS, tenacity_before_sleep_loguru
 from .realtime_types import UnifiedRealtimeQuote, RealtimeSource
 import os
-
-logger = logging.getLogger(__name__)
-
 
 class YfinanceFetcher(BaseFetcher):
     """
@@ -127,7 +123,7 @@ class YfinanceFetcher(BaseFetcher):
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=tenacity_before_sleep_loguru,
     )
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """
@@ -413,8 +409,11 @@ class YfinanceFetcher(BaseFetcher):
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    import sys
+
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     fetcher = YfinanceFetcher()
     
     try:

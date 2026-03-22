@@ -14,13 +14,11 @@
 - CircuitBreaker 管理各数据源的熔断状态
 """
 
-import logging
+from loguru import logger
 import time
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Union
 from enum import Enum
-
-logger = logging.getLogger(__name__)
 
 
 # ============================================

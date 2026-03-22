@@ -9,7 +9,7 @@
 2. 提供日线数据查询接口
 """
 
-import logging
+from loguru import logger
 from datetime import date
 from typing import Optional, List, Dict, Any
 
@@ -17,9 +17,6 @@ import pandas as pd
 from sqlalchemy import and_, desc, select
 
 from src.storage import DatabaseManager, StockDaily
-
-logger = logging.getLogger(__name__)
-
 
 class StockRepository:
     """

@@ -14,7 +14,7 @@ A股自选股智能分析系统 - 异步任务队列
 from __future__ import annotations
 
 import asyncio
-import logging
+from loguru import logger
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -25,9 +25,6 @@ from typing import Optional, Dict, Set, List, Callable, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from asyncio import Queue as AsyncQueue
-
-logger = logging.getLogger(__name__)
-
 
 class TaskStatus(str, Enum):
     """任务状态枚举"""

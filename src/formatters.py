@@ -9,7 +9,9 @@
 
 import re
 import time
-from typing import List, Callable
+from typing import Callable, List
+
+from loguru import logger
 
 
 def format_feishu_markdown(content: str) -> str:
@@ -148,8 +150,6 @@ def _chunk_by_lines(content: str, max_bytes: int, send_func: Callable[[str], boo
             if send_func(chunk + page_marker):
                 success_count += 1
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"飞书第 {i+1}/{total_chunks} 批发送异常: {e}")
         
         # 批次间隔，避免触发频率限制
@@ -260,8 +260,6 @@ def chunk_feishu_content(content: str, max_bytes: int, send_func: Callable[[str]
             if send_func(chunk_with_marker):
                 success_count += 1
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"飞书第 {i+1}/{total_chunks} 批发送异常: {e}")
         
         # 批次间隔，避免触发频率限制

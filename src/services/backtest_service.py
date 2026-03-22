@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import json
-import logging
+from loguru import logger
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -15,9 +15,6 @@ from src.core.backtest_engine import OVERALL_SENTINEL_CODE, BacktestEngine, Eval
 from src.repositories.backtest_repo import BacktestRepository
 from src.repositories.stock_repo import StockRepository
 from src.storage import BacktestResult, BacktestSummary, DatabaseManager
-
-logger = logging.getLogger(__name__)
-
 
 class BacktestService:
     """Service layer to run and query backtests."""

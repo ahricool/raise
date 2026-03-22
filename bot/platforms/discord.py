@@ -10,14 +10,11 @@ Discord 平台适配器
 3. 将响应转换为 Discord 格式
 """
 
-import logging
+from loguru import logger
 from typing import Dict, Any, Optional
 
 from bot.platforms.base import BotPlatform
 from bot.models import BotMessage, WebhookResponse
-
-
-logger = logging.getLogger(__name__)
 
 
 class DiscordPlatform(BotPlatform):

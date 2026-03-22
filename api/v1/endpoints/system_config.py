@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
@@ -21,8 +21,6 @@ from api.v1.schemas.system_config import (
 )
 from src.services.system_config_service import ConfigConflictError, ConfigValidationError, SystemConfigService
 from src.services.schedule_service import SchedulerService
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

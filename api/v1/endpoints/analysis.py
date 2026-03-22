@@ -18,7 +18,7 @@
 
 import asyncio
 import json
-import logging
+from loguru import logger
 from datetime import datetime
 from typing import Optional, Union, Dict, Any
 
@@ -49,8 +49,6 @@ from src.services.task_queue import (
     DuplicateTaskError,
     TaskStatus as TaskStatusEnum,
 )
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

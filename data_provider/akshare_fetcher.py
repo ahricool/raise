@@ -23,7 +23,6 @@ AkshareFetcher - 主数据源 (Priority 1)
 - 筹码分布：获利比例、平均成本、筹码集中度
 """
 
-import logging
 import os
 import random
 import time
@@ -32,15 +31,15 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 
 import pandas as pd
+from loguru import logger
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
 )
 
-from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS
+from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS, tenacity_before_sleep_loguru
 from .realtime_types import (
     UnifiedRealtimeQuote, ChipDistribution, RealtimeSource,
     get_realtime_circuit_breaker, get_chip_circuit_breaker,
@@ -50,9 +49,6 @@ from .realtime_types import (
 
 # 保留旧的 RealtimeQuote 别名，用于向后兼容
 RealtimeQuote = UnifiedRealtimeQuote
-
-
-logger = logging.getLogger(__name__)
 
 
 # User-Agent 池，用于随机轮换
@@ -228,7 +224,7 @@ class AkshareFetcher(BaseFetcher):
         stop=stop_after_attempt(3),  # 最多重试3次
         wait=wait_exponential(multiplier=1, min=2, max=30),  # 指数退避：2, 4, 8... 最大30秒
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=tenacity_before_sleep_loguru,
     )
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """
@@ -1524,8 +1520,11 @@ class AkshareFetcher(BaseFetcher):
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    import sys
+
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     fetcher = AkshareFetcher()
     
     # 测试普通股票

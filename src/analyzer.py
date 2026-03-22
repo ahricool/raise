@@ -11,15 +11,14 @@ A股自选股智能分析系统 - AI分析层
 """
 
 import json
-import logging
+import sys
 import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 from json_repair import repair_json
+from loguru import logger
 
 from src.config import get_config
-
-logger = logging.getLogger(__name__)
 
 
 # 股票名称映射（常见股票）
@@ -1455,8 +1454,9 @@ def get_analyzer() -> GeminiAnalyzer:
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     # 模拟上下文数据
     test_context = {
         'code': '600519',

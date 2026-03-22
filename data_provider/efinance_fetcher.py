@@ -20,7 +20,6 @@ EfinanceFetcher - 优先数据源 (Priority 0)
 4. 熔断器机制：连续失败后自动冷却
 """
 
-import logging
 import os
 import random
 import re
@@ -31,15 +30,15 @@ from typing import Optional, Dict, Any, List, Tuple
 
 import pandas as pd
 import requests  # 引入 requests 以捕获异常
+from loguru import logger
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
-    before_sleep_log,
 )
 
-from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS
+from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS, tenacity_before_sleep_loguru
 from .realtime_types import (
     UnifiedRealtimeQuote, RealtimeSource,
     get_realtime_circuit_breaker,
@@ -88,9 +87,6 @@ class EfinanceRealtimeQuote:
             'low': self.low,
             'open': self.open_price,
         }
-
-
-logger = logging.getLogger(__name__)
 
 
 # User-Agent 池，用于随机轮换
@@ -227,7 +223,7 @@ class EfinanceFetcher(BaseFetcher):
             requests.exceptions.ConnectionError,
             requests.exceptions.ChunkedEncodingError
         )),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
+        before_sleep=tenacity_before_sleep_loguru,
     )
     def _fetch_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """
@@ -943,8 +939,11 @@ class EfinanceFetcher(BaseFetcher):
 
 if __name__ == "__main__":
     # 测试代码
-    logging.basicConfig(level=logging.DEBUG)
-    
+    import sys
+
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG")
+
     fetcher = EfinanceFetcher()
     
     # 测试普通股票

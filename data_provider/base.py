@@ -14,24 +14,45 @@
 3. 指数退避重试机制
 """
 
-import logging
 import random
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, List, Tuple, Dict, Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from loguru import logger
 from tenacity import (
+    RetryCallState,
+    _utils as tenacity_utils,
     retry,
     stop_after_attempt,
     wait_exponential,
     retry_if_exception_type,
 )
 
-# 配置日志
-logger = logging.getLogger(__name__)
+
+def tenacity_before_sleep_loguru(retry_state: RetryCallState) -> None:
+    """Tenacity before_sleep callback; logs via loguru (replaces before_sleep_log + stdlib logging)."""
+    if retry_state.outcome is None:
+        raise RuntimeError("tenacity_before_sleep_loguru called before outcome was set")
+    if retry_state.next_action is None:
+        raise RuntimeError("tenacity_before_sleep_loguru called before next_action was set")
+
+    if retry_state.outcome.failed:
+        ex = retry_state.outcome.exception()
+        verb, value = "raised", f"{ex.__class__.__name__}: {ex}"
+    else:
+        verb, value = "returned", retry_state.outcome.result()
+
+    if retry_state.fn is None:
+        fn_name = "<unknown>"
+    else:
+        fn_name = tenacity_utils.get_callback_name(retry_state.fn)
+
+    sleep_s = "%.3g" % retry_state.next_action.sleep
+    logger.warning("Retrying {} in {} seconds as it {} {}.", fn_name, sleep_s, verb, value)
 
 
 # === 标准化列名定义 ===

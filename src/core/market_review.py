@@ -10,7 +10,7 @@ A股自选股智能分析系统 - 大盘复盘模块
 3. 保存和发送复盘报告
 """
 
-import logging
+from loguru import logger
 from datetime import datetime
 from typing import Optional
 
@@ -18,9 +18,6 @@ from src.notification import NotificationService
 from src.market_analyzer import MarketAnalyzer
 from src.search_service import SearchService
 from src.analyzer import GeminiAnalyzer
-
-
-logger = logging.getLogger(__name__)
 
 
 def run_market_review(
