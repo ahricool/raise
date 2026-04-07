@@ -21,10 +21,7 @@ services:
       retries: 10
 
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: raise-server:${env_version:-latest}
+    image: ${SERVER_IMAGE:-ghcr.io/ahricool/raise:latest}
     container_name: raise-server
     restart: unless-stopped
     env_file:

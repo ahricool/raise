@@ -2,8 +2,9 @@
 
 ## Deployment
 
-Use `./deploy.sh` in production to pull the latest code from `main` and force a rebuild of the Docker image.
+Docker images are built by GitHub Actions on every push to `main` and published to GHCR.
 
-- `./deploy.sh`: clean local changes, switch to `main`, pull latest remote code, then rebuild and deploy
+- `./deploy.sh`: clean local changes, switch to `main`, pull latest remote code, pull latest prebuilt image, then deploy
+- Set `SERVER_IMAGE` in `.env` to override the default image (`ghcr.io/ahricool/raise:latest`)
 
-This avoids the previous behavior where containers could restart from an old image after `docker compose up -d`.
+This avoids local rebuild drift and ensures production containers run the image built by CI.
