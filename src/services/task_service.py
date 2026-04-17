@@ -68,7 +68,8 @@ class TaskService:
         report_type: Union[ReportType, str] = ReportType.SIMPLE,
         source_message: Optional[BotMessage] = None,
         save_context_snapshot: Optional[bool] = None,
-        query_source: str = "bot"
+        query_source: str = "bot",
+        analysis_mode: str = "auto",
     ) -> Dict[str, Any]:
         """
         提交异步分析任务
@@ -97,10 +98,11 @@ class TaskService:
             report_type,
             source_message,
             save_context_snapshot,
-            query_source
+            query_source,
+            analysis_mode,
         )
 
-        logger.info(f"[TaskService] 已提交股票 {code} 的分析任务, task_id={task_id}, report_type={report_type.value}")
+        logger.info(f"[TaskService] 已提交股票 {code} 的分析任务, task_id={task_id}, report_type={report_type.value}, mode={analysis_mode}")
 
         return {
             "success": True,
@@ -142,7 +144,8 @@ class TaskService:
         report_type: ReportType = ReportType.SIMPLE,
         source_message: Optional[BotMessage] = None,
         save_context_snapshot: Optional[bool] = None,
-        query_source: str = "bot"
+        query_source: str = "bot",
+        analysis_mode: str = "auto",
     ) -> Dict[str, Any]:
         """
         执行单只股票分析
@@ -168,8 +171,15 @@ class TaskService:
 
             logger.info(f"[TaskService] 开始分析股票: {code}")
 
-            # 创建分析管道
+            # 创建分析管道（根据 analysis_mode 决定是否启用多智能体）
+            import copy
             config = get_config()
+            if analysis_mode == "multi_agent":
+                config = copy.copy(config)
+                config.enable_multi_agent = True
+            elif analysis_mode == "single":
+                config = copy.copy(config)
+                config.enable_multi_agent = False
             pipeline = StockAnalysisPipeline(
                 config=config,
                 max_workers=1,

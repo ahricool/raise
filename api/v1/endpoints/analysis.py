@@ -191,7 +191,8 @@ def _handle_sync_analysis(
             stock_code=stock_code,
             report_type=request.report_type,
             force_refresh=request.force_refresh,
-            query_id=query_id
+            query_id=query_id,
+            analysis_mode=getattr(request, "analysis_mode", "auto"),
         )
 
         if result is None:

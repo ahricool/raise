@@ -66,6 +66,12 @@ class AnalyzeRequest(BaseModel):
         alias="asyncMode",
         description="是否使用异步模式",
     )
+    analysis_mode: str = Field(
+        "auto",
+        alias="analysisMode",
+        description="分析模式: auto（读配置）/ single（单次AI）/ multi_agent（多智能体辩论）",
+        pattern="^(auto|single|multi_agent)$",
+    )
 
 
 class AnalysisResultResponse(BaseModel):

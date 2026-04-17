@@ -186,6 +186,12 @@ class Config:
     # 熔断器冷却时间（秒）
     circuit_breaker_cooldown: int = 300
 
+    # === 多智能体分析配置 ===
+    enable_multi_agent: bool = False              # 是否启用多智能体辩论分析模式
+    multi_agent_invest_debate_rounds: int = 1     # 投研辩论轮次（1-3，越多质量越高但成本越高）
+    multi_agent_risk_debate_rounds: int = 1       # 风控辩论轮次（1-3）
+    multi_agent_llm_temperature: float = 0.3      # 智能体 LLM 温度（低于主分析器以提升一致性）
+
     # Discord 机器人状态
     discord_bot_status: str = "A股智能分析 | /help"
 
@@ -443,7 +449,12 @@ class Config:
             # - tushare: Tushare Pro，需要2000积分，数据全面
             realtime_source_priority=cls._resolve_realtime_source_priority(),
             realtime_cache_ttl=int(os.getenv('REALTIME_CACHE_TTL', '600')),
-            circuit_breaker_cooldown=int(os.getenv('CIRCUIT_BREAKER_COOLDOWN', '300'))
+            circuit_breaker_cooldown=int(os.getenv('CIRCUIT_BREAKER_COOLDOWN', '300')),
+            # 多智能体配置
+            enable_multi_agent=os.getenv('ENABLE_MULTI_AGENT', 'false').lower() == 'true',
+            multi_agent_invest_debate_rounds=int(os.getenv('MULTI_AGENT_INVEST_DEBATE_ROUNDS', '1')),
+            multi_agent_risk_debate_rounds=int(os.getenv('MULTI_AGENT_RISK_DEBATE_ROUNDS', '1')),
+            multi_agent_llm_temperature=float(os.getenv('MULTI_AGENT_LLM_TEMPERATURE', '0.3')),
         )
     
     @classmethod

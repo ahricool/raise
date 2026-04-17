@@ -1,11 +1,44 @@
 export type SentimentLabel = 'fearful' | 'cautious' | 'neutral' | 'optimistic' | 'greedy'
 export type ReportType = 'simple' | 'detailed'
 
+export type AnalysisMode = 'auto' | 'single' | 'multi_agent'
+
 export interface AnalysisRequest {
   stockCode: string
   reportType?: ReportType
   forceRefresh?: boolean
   asyncMode?: boolean
+  analysisMode?: AnalysisMode
+}
+
+// 多智能体 Agent 进度事件
+export interface MultiAgentProgressEvent {
+  event: 'init' | 'started' | 'completed' | 'error' | 'done'
+  node?: string
+  display_name?: string
+  step?: number
+  total?: number
+  message?: string
+  result?: MultiAgentResult
+}
+
+// 多智能体最终结果
+export interface MultiAgentResult {
+  code: string
+  name: string
+  sentiment_score: number
+  trend_prediction: string
+  operation_advice: string
+  decision_type: string
+  confidence_level: string
+  dashboard?: Record<string, unknown>
+  technical_analysis?: string
+  fundamental_analysis?: string
+  news_summary?: string
+  market_sentiment?: string
+  analysis_summary?: string
+  risk_warning?: string
+  data_sources?: string
 }
 
 export interface ReportMeta {
