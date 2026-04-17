@@ -6,11 +6,7 @@ on:
       - main
     tags:
       - 'v*.*.*'
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
-      - 'LICENSE'
-      - '.gitignore'
+  workflow_dispatch:
 
 concurrency:
   group: docker-publish-${{ github.ref }}
