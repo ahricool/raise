@@ -33,7 +33,8 @@ class AnalysisService:
         report_type: str = "detailed",
         force_refresh: bool = False,
         query_id: Optional[str] = None,
-        send_notification: bool = True
+        send_notification: bool = True,
+        analysis_mode: str = "auto",
     ) -> Optional[Dict[str, Any]]:
         """
         执行股票分析
@@ -61,9 +62,16 @@ class AnalysisService:
             if query_id is None:
                 query_id = uuid.uuid4().hex
             
-            # 获取配置
+            # 获取配置（根据 analysis_mode 决定是否启用多智能体）
+            import copy
             config = get_config()
-            
+            if analysis_mode == "multi_agent":
+                config = copy.copy(config)
+                config.enable_multi_agent = True
+            elif analysis_mode == "single":
+                config = copy.copy(config)
+                config.enable_multi_agent = False
+
             # 创建分析流水线
             pipeline = StockAnalysisPipeline(
                 config=config,

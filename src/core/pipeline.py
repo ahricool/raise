@@ -282,8 +282,25 @@ class StockAnalysisPipeline:
                 stock_name  # 传入股票名称
             )
             
-            # Step 7: 调用 AI 分析（传入增强的上下文和新闻）
-            result = self.analyzer.analyze(enhanced_context, news_context=news_context)
+            # Step 7: 调用 AI 分析（单次 AI 或多智能体辩论模式）
+            if getattr(self.config, 'enable_multi_agent', False):
+                try:
+                    from trading_agents.orchestrator import MultiAgentOrchestrator
+                    orchestrator = MultiAgentOrchestrator(
+                        config=self.config,
+                        progress_callback=getattr(self, '_multi_agent_progress_callback', None),
+                    )
+                    result = orchestrator.run(
+                        stock_code=code,
+                        stock_name=stock_name,
+                        enhanced_context=enhanced_context,
+                        news_context=news_context,
+                    )
+                except Exception as e:
+                    logger.error(f"[{code}] 多智能体分析失败，降级到单次 AI: {e}")
+                    result = self.analyzer.analyze(enhanced_context, news_context=news_context)
+            else:
+                result = self.analyzer.analyze(enhanced_context, news_context=news_context)
 
             # Step 7.5: 填充分析时的价格信息到 result
             if result:

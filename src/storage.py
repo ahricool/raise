@@ -401,10 +401,62 @@ class BacktestSummary(Base):
     )
 
 
+class AgentMemory(Base):
+    """多智能体记忆系统 - 存储每只股票的历史决策供 Agent 参考。"""
+
+    __tablename__ = 'agent_memory'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_code = Column(String(10), nullable=False, index=True)
+    signal = Column(String(20))           # 最终信号: buy/hold/sell
+    outcome_context = Column(Text)         # 结果描述（可选，用于反思更新）
+    created_at = Column(DateTime, default=datetime.now, index=True)
+
+    __table_args__ = (
+        Index('ix_agent_memory_code_time', 'stock_code', 'created_at'),
+    )
+
+
+class MultiAgentDebateLog(Base):
+    """多智能体辩论过程完整日志 - 存储所有 Agent 的报告，供审计与调试。"""
+
+    __tablename__ = 'multi_agent_debate_log'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    analysis_history_id = Column(Integer, ForeignKey('analysis_history.id'), nullable=True, index=True)
+    stock_code = Column(String(10), nullable=False, index=True)
+
+    # 四位分析师报告
+    market_report = Column(Text)
+    fundamentals_report = Column(Text)
+    news_report = Column(Text)
+    sentiment_report = Column(Text)
+
+    # 多空辩论
+    bull_argument = Column(Text)
+    bear_argument = Column(Text)
+
+    # 交易员与风控
+    trade_decision = Column(Text)
+    risk_aggressive = Column(Text)
+    risk_conservative = Column(Text)
+    risk_neutral = Column(Text)
+
+    # 最终决策
+    final_decision = Column(Text)
+    final_signal = Column(String(20))
+
+    created_at = Column(DateTime, default=datetime.now, index=True)
+
+    __table_args__ = (
+        Index('ix_debate_log_code_time', 'stock_code', 'created_at'),
+    )
+
+
 class DatabaseManager:
     """
     数据库管理器 - 单例模式
-    
+
     职责：
     1. 管理数据库连接池
     2. 提供 Session 上下文管理
@@ -1199,6 +1251,68 @@ class DatabaseManager:
         raw_key = f"{code}|{title}|{source}|{date_str}"
         digest = hashlib.md5(raw_key.encode("utf-8")).hexdigest()
         return f"no-url:{code}:{digest}"
+
+    # === 多智能体记忆系统 ===
+
+    def save_agent_memory(self, stock_code: str, signal: str, outcome_context: str = "") -> None:
+        """保存多智能体最终决策到记忆系统。"""
+        with self._SessionLocal() as session:
+            memory = AgentMemory(
+                stock_code=stock_code,
+                signal=signal,
+                outcome_context=outcome_context,
+            )
+            session.add(memory)
+            session.commit()
+
+    def get_agent_memories(self, stock_code: str, limit: int = 3) -> List[Dict[str, Any]]:
+        """查询某只股票最近的历史决策记忆。"""
+        with self._SessionLocal() as session:
+            rows = (
+                session.execute(
+                    select(AgentMemory)
+                    .where(AgentMemory.stock_code == stock_code)
+                    .order_by(desc(AgentMemory.created_at))
+                    .limit(limit)
+                )
+                .scalars()
+                .all()
+            )
+            return [
+                {
+                    "signal": r.signal,
+                    "outcome_context": r.outcome_context,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                }
+                for r in rows
+            ]
+
+    def save_multi_agent_debate_log(
+        self,
+        stock_code: str,
+        state_dict: Dict[str, Any],
+        analysis_history_id: Optional[int] = None,
+    ) -> None:
+        """持久化多智能体辩论过程（所有 Agent 报告）。"""
+        with self._SessionLocal() as session:
+            log = MultiAgentDebateLog(
+                analysis_history_id=analysis_history_id,
+                stock_code=stock_code,
+                market_report=state_dict.get("market_report", ""),
+                fundamentals_report=state_dict.get("fundamentals_report", ""),
+                news_report=state_dict.get("news_report", ""),
+                sentiment_report=state_dict.get("sentiment_report", ""),
+                bull_argument=state_dict.get("bull_argument", ""),
+                bear_argument=state_dict.get("bear_argument", ""),
+                trade_decision=state_dict.get("trade_decision", ""),
+                risk_aggressive=state_dict.get("risk_aggressive", ""),
+                risk_conservative=state_dict.get("risk_conservative", ""),
+                risk_neutral=state_dict.get("risk_neutral", ""),
+                final_decision=state_dict.get("final_decision", ""),
+                final_signal=state_dict.get("final_signal", ""),
+            )
+            session.add(log)
+            session.commit()
 
 
 # 便捷函数

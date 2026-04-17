@@ -39,8 +39,8 @@ class AnalyzeCommand(BotCommand):
     
     @property
     def usage(self) -> str:
-        return "/analyze <股票代码> [full]"
-    
+        return "/analyze <股票代码> [full] [multi]"
+
     def validate_args(self, args: List[str]) -> Optional[str]:
         """验证参数"""
         if not args:
@@ -64,33 +64,38 @@ class AnalyzeCommand(BotCommand):
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
         """执行分析命令"""
         code = args[0].lower()
-        
-        # 检查是否需要完整报告（默认精简，传 full/完整/详细 切换）
-        report_type = "simple"
-        if len(args) > 1 and args[1].lower() in ["full", "完整", "详细"]:
-            report_type = "full"
-        logger.info(f"[AnalyzeCommand] 分析股票: {code}, 报告类型: {report_type}")
-        
+        flags = {a.lower() for a in args[1:]}
+
+        # 报告类型（默认精简）
+        report_type = "full" if flags & {"full", "完整", "详细"} else "simple"
+        # 分析模式：传入 multi/多智能体 则启用多智能体辩论
+        analysis_mode = "multi_agent" if flags & {"multi", "多智能体", "agents"} else "auto"
+
+        logger.info(f"[AnalyzeCommand] 分析股票: {code}, 报告类型: {report_type}, 模式: {analysis_mode}")
+
         try:
             # 调用分析服务
             from src.services.task_service import get_task_service
             from src.enums import ReportType
-            
+
             service = get_task_service()
-            
+
             # 提交异步分析任务
             result = service.submit_analysis(
                 code=code,
                 report_type=ReportType.from_str(report_type),
-                source_message=message
+                source_message=message,
+                analysis_mode=analysis_mode,
             )
-            
+
             if result.get("success"):
                 task_id = result.get("task_id", "")
+                mode_label = "多智能体辩论" if analysis_mode == "multi_agent" else "AI分析"
                 return BotResponse.markdown_response(
                     f"✅ **分析任务已提交**\n\n"
                     f"• 股票代码: `{code}`\n"
                     f"• 报告类型: {ReportType.from_str(report_type).display_name}\n"
+                    f"• 分析模式: {mode_label}\n"
                     f"• 任务 ID: `{task_id[:20]}...`\n\n"
                     f"分析完成后将自动推送结果。"
                 )
