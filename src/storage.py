@@ -487,20 +487,36 @@ class DatabaseManager:
             config = get_config()
             db_url = config.get_db_url()
         
+        is_sqlite = db_url.startswith("sqlite")
+        connect_args: dict = {}
+        if is_sqlite:
+            connect_args["check_same_thread"] = False
+
         # 创建数据库引擎
         self._engine = create_engine(
             db_url,
-            echo=False,  # 设为 True 可查看 SQL 语句
-            pool_pre_ping=True,  # 连接健康检查
+            echo=False,
+            pool_pre_ping=True,
+            connect_args=connect_args,
         )
-        
+
         # 创建 Session 工厂
         self._SessionLocal = sessionmaker(
             bind=self._engine,
             autocommit=False,
             autoflush=False,
         )
-        
+
+        # SQLite: 启用 WAL 模式和 busy_timeout，降低并发写入冲突
+        if is_sqlite:
+            _cfg = get_config()
+            with self._engine.connect() as _conn:
+                if getattr(_cfg, 'sqlite_wal_enabled', True):
+                    _conn.execute(text("PRAGMA journal_mode=WAL"))
+                _busy_ms = getattr(_cfg, 'sqlite_busy_timeout_ms', 5000)
+                _conn.execute(text(f"PRAGMA busy_timeout={_busy_ms}"))
+                _conn.commit()
+
         # 删除已废弃的表
         with self._engine.connect() as conn:
             conn.execute(text("DROP TABLE IF EXISTS telegram_positions"))

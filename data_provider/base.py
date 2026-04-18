@@ -808,12 +808,22 @@ class DataFetcherManager:
         # 1. 先检查缓存
         if hasattr(self, '_stock_name_cache') and stock_code in self._stock_name_cache:
             return self._stock_name_cache[stock_code]
-        
+
         # 初始化缓存
         if not hasattr(self, '_stock_name_cache'):
             self._stock_name_cache = {}
-        
-        # 2. 尝试从实时行情中获取（最快）
+
+        # 2. 从 stocks.index.json 索引查找（前端静态文件，优先复用）
+        try:
+            from src.data.stock_index_loader import get_index_stock_name
+            _idx_name = get_index_stock_name(stock_code)
+            if _idx_name:
+                self._stock_name_cache[stock_code] = _idx_name
+                return _idx_name
+        except Exception:
+            pass
+
+        # 3. 尝试从实时行情中获取（最快）
         quote = self.get_realtime_quote(stock_code)
         if quote and hasattr(quote, 'name') and quote.name:
             name = quote.name

@@ -870,6 +870,160 @@ class BraveSearchProvider(BaseSearchProvider):
             return '未知来源'
 
 
+class MiniMaxSearchProvider(BaseSearchProvider):
+    """MiniMax 结构化搜索"""
+
+    SEARCH_URL = "https://api.minimaxi.com/v1/coding_plan/search"
+
+    def __init__(self, api_keys: List[str]):
+        self.api_keys = api_keys
+        self._key_index = 0
+
+    def _get_key(self) -> str:
+        key = self.api_keys[self._key_index % len(self.api_keys)]
+        self._key_index += 1
+        return key
+
+    def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        if not self.api_keys:
+            return SearchResponse(results=[], provider="minimax", error="No API key")
+        try:
+            import requests as _req
+            key = self._get_key()
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            resp = _req.post(self.SEARCH_URL, json={"query": query, "top_k": max_results}, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            results = [
+                SearchResult(
+                    title=item.get("title", ""),
+                    url=item.get("url", ""),
+                    snippet=item.get("content", item.get("snippet", "")),
+                    source="minimax",
+                )
+                for item in data.get("data", {}).get("results", [])[:max_results]
+            ]
+            return SearchResponse(results=results, provider="minimax")
+        except Exception as e:
+            return SearchResponse(results=[], provider="minimax", error=str(e))
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self.api_keys)
+
+    @property
+    def name(self) -> str:
+        return "MiniMax"
+
+
+class AnspireSearchProvider(BaseSearchProvider):
+    """Anspire 搜索 — 专为中文/A股优化"""
+
+    SEARCH_URL = "https://plugin.anspire.cn/api/ntsearch/search"
+
+    def __init__(self, api_keys: List[str]):
+        self.api_keys = api_keys
+        self._key_index = 0
+
+    def _get_key(self) -> str:
+        key = self.api_keys[self._key_index % len(self.api_keys)]
+        self._key_index += 1
+        return key
+
+    def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        if not self.api_keys:
+            return SearchResponse(results=[], provider="anspire", error="No API key")
+        try:
+            import requests as _req
+            key = self._get_key()
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            resp = _req.post(self.SEARCH_URL, json={"query": query, "limit": max_results}, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            raw = data.get("data", {}).get("results", data.get("results", []))
+            results = [
+                SearchResult(
+                    title=item.get("title", ""),
+                    url=item.get("url", ""),
+                    snippet=item.get("content", item.get("snippet", item.get("abstract", ""))),
+                    source="anspire",
+                )
+                for item in raw[:max_results]
+            ]
+            return SearchResponse(results=results, provider="anspire")
+        except Exception as e:
+            return SearchResponse(results=[], provider="anspire", error=str(e))
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self.api_keys)
+
+    @property
+    def name(self) -> str:
+        return "Anspire"
+
+
+class SearXNGSearchProvider(BaseSearchProvider):
+    """SearXNG — 支持自托管实例和公共实例自动发现"""
+
+    PUBLIC_INSTANCES_URL = "https://searx.space/data/instances.json"
+
+    def __init__(self, base_urls: Optional[List[str]] = None, use_public_instances: bool = True):
+        self._base_urls: List[str] = list(base_urls or [])
+        self._use_public = use_public_instances
+        self._public_instances: List[str] = []
+        self._instance_index = 0
+        self._public_fetched = False
+
+    def _get_instances(self) -> List[str]:
+        all_urls = list(self._base_urls)
+        if self._use_public and not self._public_fetched:
+            try:
+                import requests as _req
+                resp = _req.get(self.PUBLIC_INSTANCES_URL, timeout=10)
+                data = resp.json()
+                self._public_instances = [
+                    url.rstrip("/")
+                    for url, info in data.get("instances", {}).items()
+                    if info.get("network_type") == "normal"
+                    and info.get("http", {}).get("status_code") == 200
+                ][:10]
+            except Exception:
+                pass
+            finally:
+                self._public_fetched = True
+        return all_urls + self._public_instances
+
+    def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        instances = self._get_instances()
+        if not instances:
+            return SearchResponse(results=[], provider="searxng", error="No instances")
+        import requests as _req
+        for _ in range(min(3, len(instances))):
+            base = instances[self._instance_index % len(instances)]
+            self._instance_index += 1
+            try:
+                resp = _req.get(f"{base}/search", params={"q": query, "format": "json", "results": max_results}, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                results = [
+                    SearchResult(title=r.get("title", ""), url=r.get("url", ""), snippet=r.get("content", ""), source="searxng")
+                    for r in data.get("results", [])[:max_results]
+                ]
+                return SearchResponse(results=results, provider="searxng")
+            except Exception:
+                continue
+        return SearchResponse(results=[], provider="searxng", error="All instances failed")
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self._base_urls) or self._use_public
+
+    @property
+    def name(self) -> str:
+        return "SearXNG"
+
+
 class SearchService:
     """
     搜索服务
@@ -906,39 +1060,51 @@ class SearchService:
         tavily_keys: Optional[List[str]] = None,
         brave_keys: Optional[List[str]] = None,
         serpapi_keys: Optional[List[str]] = None,
+        anspire_keys: Optional[List[str]] = None,
+        minimax_keys: Optional[List[str]] = None,
+        searxng_base_urls: Optional[List[str]] = None,
+        searxng_public_instances_enabled: bool = True,
     ):
-        """
-        初始化搜索服务
-
-        Args:
-            bocha_keys: 博查搜索 API Key 列表
-            tavily_keys: Tavily API Key 列表
-            brave_keys: Brave Search API Key 列表
-            serpapi_keys: SerpAPI Key 列表
-        """
         self._providers: List[BaseSearchProvider] = []
 
-        # 初始化搜索引擎（按优先级排序）
-        # 1. Bocha 优先（中文搜索优化，AI摘要）
+        # 1. Anspire（专为A股中文优化）
+        if anspire_keys:
+            self._providers.append(AnspireSearchProvider(anspire_keys))
+            logger.info(f"已配置 Anspire 搜索，共 {len(anspire_keys)} 个 API Key")
+
+        # 2. Bocha（中文搜索优化，AI摘要）
         if bocha_keys:
             self._providers.append(BochaSearchProvider(bocha_keys))
             logger.info(f"已配置 Bocha 搜索，共 {len(bocha_keys)} 个 API Key")
 
-        # 2. Tavily（免费额度更多，每月 1000 次）
+        # 3. MiniMax 结构化搜索
+        if minimax_keys:
+            self._providers.append(MiniMaxSearchProvider(minimax_keys))
+            logger.info(f"已配置 MiniMax 搜索，共 {len(minimax_keys)} 个 API Key")
+
+        # 4. Tavily
         if tavily_keys:
             self._providers.append(TavilySearchProvider(tavily_keys))
             logger.info(f"已配置 Tavily 搜索，共 {len(tavily_keys)} 个 API Key")
 
-        # 3. Brave Search（隐私优先，全球覆盖）
+        # 5. Brave Search
         if brave_keys:
             self._providers.append(BraveSearchProvider(brave_keys))
             logger.info(f"已配置 Brave 搜索，共 {len(brave_keys)} 个 API Key")
 
-        # 4. SerpAPI 作为备选（每月 100 次）
+        # 6. SerpAPI
         if serpapi_keys:
             self._providers.append(SerpAPISearchProvider(serpapi_keys))
             logger.info(f"已配置 SerpAPI 搜索，共 {len(serpapi_keys)} 个 API Key")
-        
+
+        # 7. SearXNG（自托管或公共实例）
+        if searxng_base_urls or searxng_public_instances_enabled:
+            self._providers.append(SearXNGSearchProvider(
+                base_urls=searxng_base_urls,
+                use_public_instances=searxng_public_instances_enabled,
+            ))
+            logger.info("已配置 SearXNG 搜索")
+
         if not self._providers:
             logger.warning("未配置任何搜索引擎 API Key，新闻搜索功能将不可用")
 
