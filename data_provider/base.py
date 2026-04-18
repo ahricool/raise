@@ -363,12 +363,12 @@ class DataFetcherManager:
         优先级动态调整逻辑：
         - 如果配置了 TUSHARE_TOKEN：Tushare 优先级提升为 0（最高）
         - 否则按默认优先级：
-          0. EfinanceFetcher (Priority 0) - 最高优先级
-          1. AkshareFetcher (Priority 1)
-          2. PytdxFetcher (Priority 2) - 通达信
-          2. TushareFetcher (Priority 2)
-          3. BaostockFetcher (Priority 3)
-          4. YfinanceFetcher (Priority 4)
+          0. EfinanceFetcher (Priority 0) - 最高优先级，主要抓东方财富的API，成功率较高
+          1. AkshareFetcher (Priority 1) - yfinance 的中文版
+          2. PytdxFetcher (Priority 2) - 通达信，免费的直联数据
+          2. TushareFetcher (Priority 2) - 稳定的数据源，要钱
+          3. BaostockFetcher (Priority 3) - 免费开源的数据，就是更新较慢
+          4. YfinanceFetcher (Priority 4) - 雅虎财经数据源
         """
         from .efinance_fetcher import EfinanceFetcher
         from .akshare_fetcher import AkshareFetcher

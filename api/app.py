@@ -114,7 +114,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
         async def root() -> RootResponse:
             """根路由 - API 状态信息"""
             return RootResponse(
-                message="Daily Stock Analysis API is running",
+                message="Data AI Analysis System is running.",
                 version="1.0.0"
             )
     

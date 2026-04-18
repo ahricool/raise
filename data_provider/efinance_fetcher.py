@@ -23,6 +23,7 @@ EfinanceFetcher - 优先数据源 (Priority 0)
 import os
 import random
 import re
+from sre_constants import INFO
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -988,6 +989,7 @@ if __name__ == "__main__":
     try:
         info = fetcher.get_base_info('600519')
         if info:
+            print(info)
             print(f"[基本信息] 市盈率={info.get('市盈率(动)', 'N/A')}, 市净率={info.get('市净率', 'N/A')}")
         else:
             print("[基本信息] 未获取到数据")
