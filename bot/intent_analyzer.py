@@ -21,6 +21,7 @@ from typing import Optional
 # ──────────────────────────────────────────────────────────────
 
 class IntentType(str, Enum):
+    """业务实体类：IntentType。"""
     ADD_WATCHLIST = "add_watchlist"       # 添加自选股
     REMOVE_WATCHLIST = "remove_watchlist" # 删除自选股
     ANALYZE_STOCK = "analyze_stock"       # 即时分析某只股票
@@ -30,6 +31,7 @@ class IntentType(str, Enum):
 
 @dataclass
 class IntentResult:
+    """业务实体类：IntentResult。"""
     intent: IntentType
     stock_code: Optional[str] = None       # 股票代码（可能为 None，需后续搜索）
     stock_name_hint: Optional[str] = None  # 用户提到的股票名称

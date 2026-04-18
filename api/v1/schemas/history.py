@@ -31,6 +31,7 @@ class HistoryItem(BaseModel):
     created_at: Optional[str] = Field(None, description="创建时间")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "query_id": "abc123",
@@ -53,6 +54,7 @@ class HistoryListResponse(BaseModel):
     items: List[HistoryItem] = Field(default_factory=list, description="记录列表")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "total": 100,
@@ -71,6 +73,7 @@ class NewsIntelItem(BaseModel):
     url: str = Field(..., description="新闻链接")
 
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "title": "公司发布业绩快报，营收同比增长 20%",
@@ -87,6 +90,7 @@ class NewsIntelResponse(BaseModel):
     items: List[NewsIntelItem] = Field(default_factory=list, description="新闻列表")
 
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "total": 2,
@@ -148,6 +152,7 @@ class AnalysisReport(BaseModel):
     details: Optional[ReportDetails] = Field(None, description="详情区")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "meta": {

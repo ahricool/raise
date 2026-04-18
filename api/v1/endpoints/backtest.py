@@ -37,6 +37,7 @@ def run_backtest(
     request: BacktestRunRequest,
     db_manager: DatabaseManager = Depends(get_database_manager),
 ) -> BacktestRunResponse:
+    """业务流程函数：run_backtest（模块：backtest）。"""
     try:
         service = BacktestService(db_manager)
         stats = service.run_backtest(
@@ -72,6 +73,7 @@ def get_backtest_results(
     limit: int = Query(20, ge=1, le=200, description="每页数量"),
     db_manager: DatabaseManager = Depends(get_database_manager),
 ) -> BacktestResultsResponse:
+    """业务流程函数：get_backtest_results（模块：backtest）。"""
     try:
         service = BacktestService(db_manager)
         data = service.get_recent_evaluations(code=code, eval_window_days=eval_window_days, limit=limit, page=page)
@@ -104,6 +106,7 @@ def get_overall_performance(
     eval_window_days: Optional[int] = Query(None, ge=1, le=120, description="评估窗口过滤"),
     db_manager: DatabaseManager = Depends(get_database_manager),
 ) -> PerformanceMetrics:
+    """业务流程函数：get_overall_performance（模块：backtest）。"""
     try:
         service = BacktestService(db_manager)
         summary = service.get_summary(scope="overall", code=None, eval_window_days=eval_window_days)
@@ -138,6 +141,7 @@ def get_stock_performance(
     eval_window_days: Optional[int] = Query(None, ge=1, le=120, description="评估窗口过滤"),
     db_manager: DatabaseManager = Depends(get_database_manager),
 ) -> PerformanceMetrics:
+    """业务流程函数：get_stock_performance（模块：backtest）。"""
     try:
         service = BacktestService(db_manager)
         summary = service.get_summary(scope="stock", code=code, eval_window_days=eval_window_days)

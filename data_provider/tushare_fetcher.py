@@ -166,6 +166,7 @@ class TushareFetcher(BaseFetcher):
         _timeout = getattr(self._api, '_DataApi__timeout', 30)
 
         def patched_query(self_api, api_name, fields='', **kwargs):
+            """业务流程函数：patched_query（模块：tushare-fetcher）。"""
             req_params = {
                 'api_name': api_name,
                 'token': _token,

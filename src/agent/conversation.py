@@ -42,6 +42,7 @@ class ConversationManager:
     """Manages multiple conversation sessions with TTL."""
     
     def __init__(self, ttl_minutes: int = 30):
+        """内部辅助逻辑：__init__（模块：conversation）。"""
         self._sessions: Dict[str, ConversationSession] = {}
         self.ttl = timedelta(minutes=ttl_minutes)
         self._lock = threading.RLock()

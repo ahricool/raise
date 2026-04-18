@@ -22,16 +22,19 @@ class TelegramPlatform(BotPlatform):
     """Telegram Bot API Webhook 与统一消息模型的桥接。"""
 
     def __init__(self):
+        """内部辅助逻辑：__init__（模块：telegram）。"""
         config = get_config()
         # 未配置 secret 时不校验（开发环境常见）；生产环境建议在 BotFather 设置并与此处一致
         self._secret = (getattr(config, "telegram_webhook_secret", None) or "").strip()
 
     @property
     def platform_name(self) -> str:
+        """业务流程函数：platform_name（模块：telegram）。"""
         return "telegram"
 
     def verify_request(self, headers: Dict[str, str], body: bytes) -> bool:
         # 与 setWebhook(secret_token=...) 对应；Header 名固定为 Telegram 文档约定
+        """业务流程函数：verify_request（模块：telegram）。"""
         if not self._secret:
             return True
 
@@ -40,6 +43,7 @@ class TelegramPlatform(BotPlatform):
 
     def parse_message(self, data: Dict[str, Any]) -> Optional[BotMessage]:
         # 普通消息在 message；编辑过的消息在 edited_message
+        """业务流程函数：parse_message（模块：telegram）。"""
         message = data.get("message") or data.get("edited_message") or {}
         if not message:
             return None
@@ -81,6 +85,7 @@ class TelegramPlatform(BotPlatform):
 
     def format_response(self, response: BotResponse, message: BotMessage) -> WebhookResponse:
         # Webhook 同步回复体里直接带 method，Telegram 会当作一次 Bot API 调用执行
+        """业务流程函数：format_response（模块：telegram）。"""
         if not response.text:
             return WebhookResponse.success()
 

@@ -89,6 +89,7 @@ class ToolRegistry:
     """
 
     def __init__(self):
+        """内部辅助逻辑：__init__（模块：registry）。"""
         self._tools: Dict[str, ToolDefinition] = {}
 
     # ----- Registration -----
@@ -122,9 +123,11 @@ class ToolRegistry:
         return list(self._tools.keys())
 
     def __len__(self) -> int:
+        """内部辅助逻辑：__len__（模块：registry）。"""
         return len(self._tools)
 
     def __contains__(self, name: str) -> bool:
+        """内部辅助逻辑：__contains__（模块：registry）。"""
         return name in self._tools
 
     # ----- Schema generation -----
@@ -190,6 +193,7 @@ def tool(
     """
     def decorator(func: Callable) -> Callable:
         # Infer parameters from type hints if not provided
+        """业务流程函数：decorator（模块：registry）。"""
         params = parameters
         if params is None:
             params = _infer_parameters(func)

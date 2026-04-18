@@ -289,6 +289,7 @@ _try_parse_json = try_parse_json
 
 
 def _try_repair_json(text: str, repair_fn: Callable) -> Optional[Dict[str, Any]]:
+    """内部辅助逻辑：_try_repair_json（模块：runner）。"""
     try:
         repaired = repair_fn(text)
         obj = json.loads(repaired)
@@ -318,6 +319,7 @@ def _build_timeout_result(
     models_used: List[str],
     messages: List[Dict[str, Any]],
 ) -> RunLoopResult:
+    """内部辅助逻辑：_build_timeout_result（模块：runner）。"""
     elapsed = time.time() - start_time
     return RunLoopResult(
         success=False,
@@ -344,6 +346,7 @@ def _build_budget_guard_result(
     remaining_timeout_s: float,
     min_step_budget_s: float,
 ) -> RunLoopResult:
+    """内部辅助逻辑：_build_budget_guard_result（模块：runner）。"""
     elapsed = time.time() - start_time
     return RunLoopResult(
         success=False,
@@ -627,6 +630,7 @@ def _execute_tools(
     """
 
     def _exec_single(tc_item):
+        """内部辅助逻辑：_exec_single（模块：runner）。"""
         t0 = time.time()
         cache_key = _build_tool_cache_key(tc_item.name, tc_item.arguments)
 

@@ -54,6 +54,7 @@ class PortfolioAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """业务流程函数：system_prompt（模块：portfolio-agent）。"""
         return (
             "You are a professional **portfolio analyst** specializing in "
             "multi-asset allocation for A-share, HK, and US equity portfolios.\n\n"
@@ -88,6 +89,7 @@ class PortfolioAgent(BaseAgent):
 
     def build_user_message(self, ctx: AgentContext) -> str:
         # Gather per-stock opinions from context
+        """业务流程函数：build_user_message（模块：portfolio-agent）。"""
         stock_opinions = ctx.data.get("stock_opinions", {})
         stock_list = ctx.data.get("stock_list", [])
 

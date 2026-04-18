@@ -83,6 +83,7 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---\s*\r?\n?(.*)$", re.DOTA
 
 
 def _coerce_string_list(value: object) -> List[str]:
+    """内部辅助逻辑：_coerce_string_list（模块：base）。"""
     if value is None:
         return []
     if isinstance(value, str):
@@ -93,6 +94,7 @@ def _coerce_string_list(value: object) -> List[str]:
 
 
 def _coerce_bool(value: object, default: bool = False) -> bool:
+    """内部辅助逻辑：_coerce_bool（模块：base）。"""
     if value is None:
         return default
     if isinstance(value, bool):
@@ -107,6 +109,7 @@ def _coerce_bool(value: object, default: bool = False) -> bool:
 
 
 def _coerce_int(value: object, default: int = 100) -> int:
+    """内部辅助逻辑：_coerce_int（模块：base）。"""
     if value is None:
         return default
     try:
@@ -116,6 +119,7 @@ def _coerce_int(value: object, default: int = 100) -> int:
 
 
 def _parse_skill_frontmatter(raw_text: str) -> tuple[Dict[str, object], str]:
+    """内部辅助逻辑：_parse_skill_frontmatter（模块：base）。"""
     import yaml
 
     match = _FRONTMATTER_RE.match(raw_text)
@@ -130,6 +134,7 @@ def _parse_skill_frontmatter(raw_text: str) -> tuple[Dict[str, object], str]:
 
 
 def _infer_skill_description(instructions: str) -> str:
+    """内部辅助逻辑：_infer_skill_description（模块：base）。"""
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n", instructions or "") if part.strip()]
     if not paragraphs:
         return ""
@@ -334,6 +339,7 @@ class SkillManager:
     """
 
     def __init__(self):
+        """内部辅助逻辑：__init__（模块：base）。"""
         self._skills: Dict[str, Skill] = {}
 
     def register(self, skill: Skill) -> None:

@@ -377,18 +377,23 @@ def _handle_analyze_pattern(stock_code: str, days: int = 60) -> dict:
 
     # ---- Helpers ----
     def body(i):
+        """业务流程函数：body（模块：analysis-tools）。"""
         return abs(c[i] - o[i])
 
     def upper_shadow(i):
+        """业务流程函数：upper_shadow（模块：analysis-tools）。"""
         return h[i] - max(c[i], o[i])
 
     def lower_shadow(i):
+        """业务流程函数：lower_shadow（模块：analysis-tools）。"""
         return min(c[i], o[i]) - l[i]
 
     def is_bullish(i):
+        """业务流程函数：is_bullish（模块：analysis-tools）。"""
         return c[i] > o[i]
 
     def is_bearish(i):
+        """业务流程函数：is_bearish（模块：analysis-tools）。"""
         return c[i] < o[i]
 
     avg_body = sum(body(i) for i in range(n)) / n if n > 0 else 1

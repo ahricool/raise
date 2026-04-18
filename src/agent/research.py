@@ -62,6 +62,7 @@ class ResearchAgent:
         token_budget: int = _DEFAULT_TOKEN_BUDGET,
         max_sub_questions: int = 5,
     ):
+        """内部辅助逻辑：__init__（模块：research）。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.token_budget = token_budget

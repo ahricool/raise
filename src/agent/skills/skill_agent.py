@@ -27,6 +27,7 @@ class SkillAgent(BaseAgent):
     max_steps = 4
 
     def __init__(self, skill_id: Optional[str] = None, strategy_id: Optional[str] = None, **kwargs):
+        """内部辅助逻辑：__init__（模块：skill-agent）。"""
         super().__init__(**kwargs)
         resolved_skill_id = skill_id or strategy_id
         if not resolved_skill_id:
@@ -53,6 +54,7 @@ class SkillAgent(BaseAgent):
         return None
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """业务流程函数：system_prompt（模块：skill-agent）。"""
         if self._skill:
             instructions = self._skill.instructions or self._skill.description
             display = self._skill.display_name
@@ -84,6 +86,7 @@ Return **only** a JSON object:
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """业务流程函数：build_user_message（模块：skill-agent）。"""
         parts = [
             f"Evaluate **{self.skill_id}** skill for stock "
             f"**{ctx.stock_code}** ({ctx.stock_name or 'unknown'}).",
@@ -101,6 +104,7 @@ Return **only** a JSON object:
         return "\n".join(parts)
 
     def post_process(self, ctx: AgentContext, raw_text: str) -> Optional[AgentOpinion]:
+        """业务流程函数：post_process（模块：skill-agent）。"""
         parsed = try_parse_json(raw_text)
         if parsed is None:
             logger.warning("[SkillAgent:%s] failed to parse opinion JSON", self.skill_id)

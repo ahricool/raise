@@ -106,6 +106,7 @@ class WatchlistService:
 
     @staticmethod
     def _guess_market(code: str) -> str:
+        """内部辅助逻辑：_guess_market（模块：watchlist-service）。"""
         upper = code.upper()
         if upper.startswith('HK') or re.fullmatch(r'0\d{4}', code):
             return "HK"

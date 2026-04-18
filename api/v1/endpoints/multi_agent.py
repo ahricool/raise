@@ -67,6 +67,7 @@ async def multi_agent_websocket(websocket: WebSocket):
         loop = asyncio.get_event_loop()
 
         def progress_callback(node_name: str, status: str, current_step: int, total: int):
+            """业务流程函数：progress_callback（模块：multi-agent）。"""
             display_name = NODE_DISPLAY_NAMES.get(node_name, node_name)
             event = {
                 "event": status,          # "started" | "completed" | "error"
@@ -82,6 +83,7 @@ async def multi_agent_websocket(websocket: WebSocket):
         error_holder: Dict[str, str] = {}
 
         def run_analysis():
+            """业务流程函数：run_analysis（模块：multi-agent）。"""
             try:
                 from src.config import get_config
                 import copy

@@ -1211,6 +1211,7 @@ class NotificationService:
 
 
     def _post_custom_webhook(self, url: str, payload: dict, timeout: int = 30) -> bool:
+        """内部辅助逻辑：_post_custom_webhook（模块：notification）。"""
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
             'User-Agent': 'StockAnalysis/1.0',
@@ -1374,6 +1375,7 @@ class NotificationService:
             return False
 
     def _send_astrbot(self, content: str) -> bool:
+        """内部辅助逻辑：_send_astrbot（模块：notification）。"""
         import time
         """
         使用 Bot API 发送消息到 AstrBot

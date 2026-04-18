@@ -141,6 +141,7 @@ def _handle_intent_message(chat_id: str, text: str) -> None:
 # ──────────────────────────────────────────────────────────────
 
 def _do_add_watchlist(chat_id: str, stock_code: str | None, name_hint: str | None) -> None:
+    """内部辅助逻辑：_do_add_watchlist（模块：bot）。"""
     from bot.intent_analyzer import send_telegram_message
     from src.services.watchlist_service import WatchlistService
     from src.storage import DatabaseManager
@@ -180,6 +181,7 @@ def _do_add_watchlist(chat_id: str, stock_code: str | None, name_hint: str | Non
 
 
 def _do_remove_watchlist(chat_id: str, stock_code: str | None, name_hint: str | None) -> None:
+    """内部辅助逻辑：_do_remove_watchlist（模块：bot）。"""
     from bot.intent_analyzer import send_telegram_message
     from src.services.watchlist_service import WatchlistService
     from src.storage import DatabaseManager
@@ -246,6 +248,7 @@ def _do_remove_watchlist(chat_id: str, stock_code: str | None, name_hint: str | 
 
 
 def _do_analyze_stock(chat_id: str, stock_code: str | None, name_hint: str | None) -> None:
+    """内部辅助逻辑：_do_analyze_stock（模块：bot）。"""
     from bot.intent_analyzer import send_telegram_message
     from src.services.watchlist_service import WatchlistService
 
@@ -307,6 +310,7 @@ def _do_analyze_stock(chat_id: str, stock_code: str | None, name_hint: str | Non
 
 
 def _do_analyze_all(chat_id: str) -> None:
+    """内部辅助逻辑：_do_analyze_all（模块：bot）。"""
     from bot.intent_analyzer import send_telegram_message
 
     try:

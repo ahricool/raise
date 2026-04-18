@@ -103,6 +103,7 @@ def _build_summary(
     bear_argument: str,
     trade_decision: str,
 ) -> str:
+    """内部辅助逻辑：_build_summary（模块：result-adapter）。"""
     parts = []
     if final_decision:
         parts.append(f"【最终裁决】{final_decision[:300]}")
@@ -116,6 +117,7 @@ def _build_summary(
 
 
 def _extract_risk_warning(risk_conservative: str, final_decision: str) -> str:
+    """内部辅助逻辑：_extract_risk_warning（模块：result-adapter）。"""
     text = risk_conservative or final_decision
     if not text:
         return ""

@@ -130,6 +130,7 @@ class TrendAnalysisResult:
     risk_factors: List[str] = field(default_factory=list)
     
     def to_dict(self) -> Dict[str, Any]:
+        """业务流程函数：to_dict（模块：stock-analyzer）。"""
         return {
             'code': self.code,
             'trend_status': self.trend_status.value,

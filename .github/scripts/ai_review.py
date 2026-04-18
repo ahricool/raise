@@ -171,6 +171,7 @@ def ai_review(diff_content, files, truncated):
 
 
 def main():
+    """业务流程函数：main（模块：ai-review）。"""
     diff, truncated = get_diff()
     files = get_changed_files()
 

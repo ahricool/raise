@@ -31,6 +31,7 @@ class GracefulShutdown:
     """
     
     def __init__(self):
+        """内部辅助逻辑：__init__（模块：scheduler）。"""
         self.shutdown_requested = False
         self._lock = threading.Lock()
         
@@ -177,6 +178,7 @@ if __name__ == "__main__":
     )
 
     def test_task():
+        """业务流程函数：test_task（模块：scheduler）。"""
         print(f"任务执行中... {datetime.now()}")
         time.sleep(2)
         print("任务完成!")

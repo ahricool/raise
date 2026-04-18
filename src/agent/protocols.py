@@ -102,6 +102,7 @@ class AgentContext:
         self.opinions.append(opinion)
 
     def add_risk_flag(self, category: str, description: str, severity: str = "medium") -> None:
+        """业务流程函数：add_risk_flag（模块：protocols）。"""
         self.risk_flags.append({
             "category": category,
             "description": description,
@@ -110,13 +111,16 @@ class AgentContext:
         })
 
     def get_data(self, key: str, default: Any = None) -> Any:
+        """业务流程函数：get_data（模块：protocols）。"""
         return self.data.get(key, default)
 
     def set_data(self, key: str, value: Any) -> None:
+        """业务流程函数：set_data（模块：protocols）。"""
         self.data[key] = value
 
     @property
     def has_risk_flags(self) -> bool:
+        """业务流程函数：has_risk_flags（模块：protocols）。"""
         return len(self.risk_flags) > 0
 
 
@@ -178,6 +182,7 @@ class StageResult:
 
     @property
     def success(self) -> bool:
+        """业务流程函数：success（模块：protocols）。"""
         return self.status == StageStatus.COMPLETED
 
 
@@ -224,6 +229,7 @@ class AgentRunStats:
         # RUNNING / PENDING are counted in total_stages but not in any sub-counter
 
     def to_dict(self) -> Dict[str, Any]:
+        """业务流程函数：to_dict（模块：protocols）。"""
         return {
             "total_stages": self.total_stages,
             "completed_stages": self.completed_stages,

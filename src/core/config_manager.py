@@ -28,6 +28,7 @@ class ConfigManager:
     """封装 `.env` 的线程安全读写与版本查询。"""
 
     def __init__(self, env_path: Optional[Path] = None):
+        """内部辅助逻辑：__init__（模块：config-manager）。"""
         self._env_path = env_path or self._resolve_env_path()
         self._lock = threading.RLock()  # 与 Web 多请求并发写同一文件互斥
 
@@ -129,6 +130,7 @@ class ConfigManager:
             os.fsync(file_obj.fileno())
 
     def _read_lines(self) -> List[str]:
+        """内部辅助逻辑：_read_lines（模块：config-manager）。"""
         if not self._env_path.exists():
             return []
         return self._env_path.read_text(encoding="utf-8").splitlines()
@@ -136,6 +138,7 @@ class ConfigManager:
     @staticmethod
     def _find_last_key_indexes(lines: List[str]) -> Dict[str, int]:
         # 重复定义同一 key 时保留较大行号，使后续替换落在「最后一处」
+        """内部辅助逻辑：_find_last_key_indexes（模块：config-manager）。"""
         key_to_index: Dict[str, int] = {}
         for index, raw_line in enumerate(lines):
             stripped = raw_line.strip()
@@ -152,6 +155,7 @@ class ConfigManager:
 
     @staticmethod
     def _resolve_env_path() -> Path:
+        """内部辅助逻辑：_resolve_env_path（模块：config-manager）。"""
         env_file = os.getenv("ENV_FILE")
         if env_file:
             return Path(env_file).resolve()

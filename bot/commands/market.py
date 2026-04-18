@@ -30,18 +30,22 @@ class MarketCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：market）。"""
         return "market"
 
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：market）。"""
         return ["m", "大盘", "复盘", "行情"]
 
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：market）。"""
         return "大盘复盘分析"
 
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：market）。"""
         return "/market"
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:

@@ -89,6 +89,7 @@ class AgentOrchestrator:
         skill_manager=None,
         config=None,
     ):
+        """内部辅助逻辑：__init__（模块：orchestrator）。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.skill_instructions = skill_instructions
@@ -1031,6 +1032,7 @@ class AgentOrchestrator:
         levels: Dict[str, Any] = {}
 
         def absorb(source: Any) -> None:
+            """业务流程函数：absorb（模块：orchestrator）。"""
             if not isinstance(source, dict):
                 return
             for key, value in source.items():
@@ -1070,6 +1072,7 @@ class AgentOrchestrator:
             }
 
         def _bias_label(bias):
+            """内部辅助逻辑：_bias_label（模块：orchestrator）。"""
             if not isinstance(bias, (int, float)):
                 return ""
             if bias > 5:
@@ -1130,9 +1133,11 @@ class AgentOrchestrator:
         ctx: AgentContext,
         intelligence: Dict[str, Any],
     ) -> List[str]:
+        """内部辅助逻辑：_collect_risk_alerts（模块：orchestrator）。"""
         alerts: List[str] = []
 
         def absorb(values: Any) -> None:
+            """业务流程函数：absorb（模块：orchestrator）。"""
             if not isinstance(values, list):
                 return
             for item in values:
@@ -1162,9 +1167,11 @@ class AgentOrchestrator:
         ctx: AgentContext,
         intelligence: Dict[str, Any],
     ) -> List[str]:
+        """内部辅助逻辑：_collect_positive_catalysts（模块：orchestrator）。"""
         catalysts: List[str] = []
 
         def absorb(values: Any) -> None:
+            """业务流程函数：absorb（模块：orchestrator）。"""
             if not isinstance(values, list):
                 return
             for item in values:
@@ -1180,12 +1187,14 @@ class AgentOrchestrator:
 
     @staticmethod
     def _latest_opinion(ctx: AgentContext, names: set[str]) -> Optional[Any]:
+        """内部辅助逻辑：_latest_opinion（模块：orchestrator）。"""
         for opinion in reversed(ctx.opinions):
             if opinion.agent_name in names:
                 return opinion
         return None
 
     def _select_base_opinion(self, ctx: AgentContext) -> Optional[Any]:
+        """内部辅助逻辑：_select_base_opinion（模块：orchestrator）。"""
         preferred_groups = (
             {"decision"},
             {"skill_consensus", "strategy_consensus"},
@@ -1207,6 +1216,7 @@ class AgentOrchestrator:
         *,
         note: str,
     ) -> Dict[str, Any]:
+        """内部辅助逻辑：_mark_partial_dashboard（模块：orchestrator）。"""
         tagged = dict(dashboard)
         summary = _first_non_empty_text(tagged.get("analysis_summary"))
         prefix = "[降级结果] "
@@ -1464,6 +1474,7 @@ def _adjust_operation_advice(advice: str, signal: str) -> str:
 
 
 def _signal_to_operation(signal: str) -> str:
+    """内部辅助逻辑：_signal_to_operation（模块：orchestrator）。"""
     mapping = {
         "buy": "买入",
         "hold": "观望",
@@ -1473,6 +1484,7 @@ def _signal_to_operation(signal: str) -> str:
 
 
 def _signal_to_signal_type(signal: str) -> str:
+    """内部辅助逻辑：_signal_to_signal_type（模块：orchestrator）。"""
     mapping = {
         "buy": "🟢买入信号",
         "hold": "⚪观望信号",
@@ -1482,6 +1494,7 @@ def _signal_to_signal_type(signal: str) -> str:
 
 
 def _default_position_advice(signal: str) -> Dict[str, str]:
+    """内部辅助逻辑：_default_position_advice（模块：orchestrator）。"""
     mapping = {
         "buy": {
             "no_position": "可结合支撑位分批试仓，避免一次性追高。",
@@ -1500,6 +1513,7 @@ def _default_position_advice(signal: str) -> Dict[str, str]:
 
 
 def _default_position_size(signal: str) -> str:
+    """内部辅助逻辑：_default_position_size（模块：orchestrator）。"""
     mapping = {
         "buy": "轻仓试仓",
         "hold": "控制仓位",
@@ -1509,12 +1523,14 @@ def _default_position_size(signal: str) -> str:
 
 
 def _normalize_operation_advice_value(value: Any, signal: str) -> str:
+    """内部辅助逻辑：_normalize_operation_advice_value（模块：orchestrator）。"""
     if isinstance(value, str) and value.strip():
         return value.strip()
     return _signal_to_operation(signal)
 
 
 def _confidence_label(confidence: float) -> str:
+    """内部辅助逻辑：_confidence_label（模块：orchestrator）。"""
     if confidence >= 0.75:
         return "高"
     if confidence >= 0.45:
@@ -1523,6 +1539,7 @@ def _confidence_label(confidence: float) -> str:
 
 
 def _estimate_sentiment_score(signal: str, confidence: float) -> int:
+    """内部辅助逻辑：_estimate_sentiment_score（模块：orchestrator）。"""
     confidence = max(0.0, min(1.0, float(confidence)))
     bands = {
         "buy": (65, 79),
@@ -1534,6 +1551,7 @@ def _estimate_sentiment_score(signal: str, confidence: float) -> int:
 
 
 def _coerce_level_value(value: Any) -> Any:
+    """内部辅助逻辑：_coerce_level_value（模块：orchestrator）。"""
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, (int, float)):
@@ -1548,6 +1566,7 @@ def _coerce_level_value(value: Any) -> Any:
 
 
 def _pick_first_level(*values: Any) -> Any:
+    """内部辅助逻辑：_pick_first_level（模块：orchestrator）。"""
     for value in values:
         normalized = _coerce_level_value(value)
         if normalized is not None:
@@ -1556,6 +1575,7 @@ def _pick_first_level(*values: Any) -> Any:
 
 
 def _level_values_equal(left: Any, right: Any) -> bool:
+    """内部辅助逻辑：_level_values_equal（模块：orchestrator）。"""
     left_normalized = _coerce_level_value(left)
     right_normalized = _coerce_level_value(right)
     return (
@@ -1566,6 +1586,7 @@ def _level_values_equal(left: Any, right: Any) -> bool:
 
 
 def _first_non_empty_text(*values: Any) -> str:
+    """内部辅助逻辑：_first_non_empty_text（模块：orchestrator）。"""
     for value in values:
         if isinstance(value, str) and value.strip():
             return value.strip()
@@ -1573,6 +1594,7 @@ def _first_non_empty_text(*values: Any) -> str:
 
 
 def _truncate_text(text: Any, limit: int) -> str:
+    """内部辅助逻辑：_truncate_text（模块：orchestrator）。"""
     value = str(text or "").strip()
     if len(value) <= limit:
         return value
@@ -1580,6 +1602,7 @@ def _truncate_text(text: Any, limit: int) -> str:
 
 
 def _extract_latest_news_title(intelligence: Dict[str, Any]) -> str:
+    """内部辅助逻辑：_extract_latest_news_title（模块：orchestrator）。"""
     key_news = intelligence.get("key_news")
     if isinstance(key_news, list):
         for item in key_news:

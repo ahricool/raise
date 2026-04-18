@@ -42,6 +42,7 @@ class BacktestResultLike(Protocol):
 
 @dataclass(frozen=True)
 class EvaluationConfig:
+    """业务实体类：EvaluationConfig。"""
     eval_window_days: int
     neutral_band_pct: float = 2.0
     engine_version: str = "v1"
@@ -350,6 +351,7 @@ class BacktestEngine:
 
     @staticmethod
     def _normalize_text(value: Optional[str]) -> str:
+        """内部辅助逻辑：_normalize_text（模块：backtest-engine）。"""
         return str(value or "").strip().lower()
 
     @classmethod
@@ -387,6 +389,7 @@ class BacktestEngine:
         direction_expected: str,
         neutral_band_pct: float,
     ) -> tuple[Optional[str], Optional[bool]]:
+        """内部辅助逻辑：_classify_outcome（模块：backtest-engine）。"""
         if stock_return_pct is None:
             return None, None
 
@@ -437,6 +440,7 @@ class BacktestEngine:
         Optional[float],
         str,
     ]:
+        """内部辅助逻辑：_evaluate_targets（模块：backtest-engine）。"""
         if position != "long":
             return (
                 None,
@@ -514,6 +518,7 @@ class BacktestEngine:
 
     @staticmethod
     def _average(values: Iterable[Optional[float]]) -> Optional[float]:
+        """内部辅助逻辑：_average（模块：backtest-engine）。"""
         items = [float(v) for v in values if v is not None]
         if not items:
             return None
@@ -521,6 +526,7 @@ class BacktestEngine:
 
     @staticmethod
     def _compute_advice_breakdown(results: List[BacktestResultLike]) -> Dict[str, Any]:
+        """内部辅助逻辑：_compute_advice_breakdown（模块：backtest-engine）。"""
         breakdown: Dict[str, Dict[str, int]] = {}
         for row in results:
             advice = (row.operation_advice or "").strip() or "(unknown)"
@@ -541,6 +547,7 @@ class BacktestEngine:
 
     @staticmethod
     def _compute_diagnostics(results: List[BacktestResultLike]) -> Dict[str, Any]:
+        """内部辅助逻辑：_compute_diagnostics（模块：backtest-engine）。"""
         status_counts: Dict[str, int] = {}
         first_hit_counts: Dict[str, int] = {}
         for row in results:

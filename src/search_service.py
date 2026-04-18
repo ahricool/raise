@@ -110,6 +110,7 @@ class BaseSearchProvider(ABC):
     
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：search-service）。"""
         return self._name
     
     @property
@@ -217,6 +218,7 @@ class TavilySearchProvider(BaseSearchProvider):
     """
     
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         super().__init__(api_keys, "Tavily")
     
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:
@@ -306,6 +308,7 @@ class SerpAPISearchProvider(BaseSearchProvider):
     """
     
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         super().__init__(api_keys, "SerpAPI")
     
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:
@@ -511,6 +514,7 @@ class BochaSearchProvider(BaseSearchProvider):
     """
     
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         super().__init__(api_keys, "Bocha")
     
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:
@@ -710,6 +714,7 @@ class BraveSearchProvider(BaseSearchProvider):
     API_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         super().__init__(api_keys, "Brave")
 
     def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:
@@ -876,15 +881,18 @@ class MiniMaxSearchProvider(BaseSearchProvider):
     SEARCH_URL = "https://api.minimaxi.com/v1/coding_plan/search"
 
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         self.api_keys = api_keys
         self._key_index = 0
 
     def _get_key(self) -> str:
+        """内部辅助逻辑：_get_key（模块：search-service）。"""
         key = self.api_keys[self._key_index % len(self.api_keys)]
         self._key_index += 1
         return key
 
     def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        """业务流程函数：search（模块：search-service）。"""
         if not self.api_keys:
             return SearchResponse(results=[], provider="minimax", error="No API key")
         try:
@@ -909,10 +917,12 @@ class MiniMaxSearchProvider(BaseSearchProvider):
 
     @property
     def is_available(self) -> bool:
+        """业务流程函数：is_available（模块：search-service）。"""
         return bool(self.api_keys)
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：search-service）。"""
         return "MiniMax"
 
 
@@ -922,15 +932,18 @@ class AnspireSearchProvider(BaseSearchProvider):
     SEARCH_URL = "https://plugin.anspire.cn/api/ntsearch/search"
 
     def __init__(self, api_keys: List[str]):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         self.api_keys = api_keys
         self._key_index = 0
 
     def _get_key(self) -> str:
+        """内部辅助逻辑：_get_key（模块：search-service）。"""
         key = self.api_keys[self._key_index % len(self.api_keys)]
         self._key_index += 1
         return key
 
     def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        """业务流程函数：search（模块：search-service）。"""
         if not self.api_keys:
             return SearchResponse(results=[], provider="anspire", error="No API key")
         try:
@@ -956,10 +969,12 @@ class AnspireSearchProvider(BaseSearchProvider):
 
     @property
     def is_available(self) -> bool:
+        """业务流程函数：is_available（模块：search-service）。"""
         return bool(self.api_keys)
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：search-service）。"""
         return "Anspire"
 
 
@@ -969,6 +984,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
     PUBLIC_INSTANCES_URL = "https://searx.space/data/instances.json"
 
     def __init__(self, base_urls: Optional[List[str]] = None, use_public_instances: bool = True):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         self._base_urls: List[str] = list(base_urls or [])
         self._use_public = use_public_instances
         self._public_instances: List[str] = []
@@ -976,6 +992,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
         self._public_fetched = False
 
     def _get_instances(self) -> List[str]:
+        """内部辅助逻辑：_get_instances（模块：search-service）。"""
         all_urls = list(self._base_urls)
         if self._use_public and not self._public_fetched:
             try:
@@ -995,6 +1012,7 @@ class SearXNGSearchProvider(BaseSearchProvider):
         return all_urls + self._public_instances
 
     def search(self, query: str, max_results: int = 10) -> 'SearchResponse':
+        """业务流程函数：search（模块：search-service）。"""
         instances = self._get_instances()
         if not instances:
             return SearchResponse(results=[], provider="searxng", error="No instances")
@@ -1017,10 +1035,12 @@ class SearXNGSearchProvider(BaseSearchProvider):
 
     @property
     def is_available(self) -> bool:
+        """业务流程函数：is_available（模块：search-service）。"""
         return bool(self._base_urls) or self._use_public
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：search-service）。"""
         return "SearXNG"
 
 
@@ -1065,6 +1085,7 @@ class SearchService:
         searxng_base_urls: Optional[List[str]] = None,
         searxng_public_instances_enabled: bool = True,
     ):
+        """内部辅助逻辑：__init__（模块：search-service）。"""
         self._providers: List[BaseSearchProvider] = []
 
         # 1. Anspire（专为A股中文优化）

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 
 class BacktestRunRequest(BaseModel):
+    """业务实体类：BacktestRunRequest。"""
     code: Optional[str] = Field(None, description="仅回测指定股票")
     force: bool = Field(False, description="强制重新计算")
     eval_window_days: Optional[int] = Field(None, ge=1, le=120, description="评估窗口（交易日数）")
@@ -17,6 +18,7 @@ class BacktestRunRequest(BaseModel):
 
 
 class BacktestRunResponse(BaseModel):
+    """业务实体类：BacktestRunResponse。"""
     processed: int = Field(..., description="候选记录数")
     saved: int = Field(..., description="写入回测结果数")
     completed: int = Field(..., description="完成回测数")
@@ -25,6 +27,7 @@ class BacktestRunResponse(BaseModel):
 
 
 class BacktestResultItem(BaseModel):
+    """业务实体类：BacktestResultItem。"""
     analysis_history_id: int
     code: str
     analysis_date: Optional[str] = None
@@ -56,6 +59,7 @@ class BacktestResultItem(BaseModel):
 
 
 class BacktestResultsResponse(BaseModel):
+    """业务实体类：BacktestResultsResponse。"""
     total: int
     page: int
     limit: int
@@ -63,6 +67,7 @@ class BacktestResultsResponse(BaseModel):
 
 
 class PerformanceMetrics(BaseModel):
+    """业务实体类：PerformanceMetrics。"""
     scope: str
     code: Optional[str] = None
     eval_window_days: int

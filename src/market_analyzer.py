@@ -41,6 +41,7 @@ class MarketIndex:
     amplitude: float = 0.0       # 振幅(%)
     
     def to_dict(self) -> Dict[str, Any]:
+        """业务流程函数：to_dict（模块：market-analyzer）。"""
         return {
             'code': self.code,
             'name': self.name,

@@ -28,18 +28,22 @@ class StatusCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：status）。"""
         return "status"
     
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：status）。"""
         return ["s", "状态", "info"]
     
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：status）。"""
         return "显示系统状态"
     
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：status）。"""
         return "/status"
     
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
@@ -89,6 +93,7 @@ class StatusCommand(BotCommand):
         """格式化状态信息"""
         # 状态图标
         def icon(enabled: bool) -> str:
+            """业务流程函数：icon（模块：status）。"""
             return "✅" if enabled else "❌"
         
         lines = [

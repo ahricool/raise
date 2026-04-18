@@ -31,26 +31,32 @@ class AddWatchlistCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：watchlist-cmd）。"""
         return "add"
 
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：watchlist-cmd）。"""
         return ["添加", "加入", "关注"]
 
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：watchlist-cmd）。"""
         return "添加股票到自选股"
 
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：watchlist-cmd）。"""
         return "/add <股票代码或名称>"
 
     def validate_args(self, args: List[str]) -> Optional[str]:
+        """业务流程函数：validate_args（模块：watchlist-cmd）。"""
         if not args:
             return "请输入股票代码或名称"
         return None
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
+        """业务流程函数：execute（模块：watchlist-cmd）。"""
         query = " ".join(args).strip()
         logger.info(f"[AddWatchlistCommand] 添加自选股: {query}")
 
@@ -104,26 +110,32 @@ class RemoveWatchlistCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：watchlist-cmd）。"""
         return "remove"
 
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：watchlist-cmd）。"""
         return ["删除", "移除", "取消关注"]
 
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：watchlist-cmd）。"""
         return "从自选股删除"
 
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：watchlist-cmd）。"""
         return "/remove <股票代码或名称>"
 
     def validate_args(self, args: List[str]) -> Optional[str]:
+        """业务流程函数：validate_args（模块：watchlist-cmd）。"""
         if not args:
             return "请输入股票代码或名称"
         return None
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
+        """业务流程函数：execute（模块：watchlist-cmd）。"""
         query = " ".join(args).strip().upper()
         logger.info(f"[RemoveWatchlistCommand] 删除自选股: {query}")
 
@@ -198,24 +210,30 @@ class AnalyzeAllCommand(BotCommand):
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：watchlist-cmd）。"""
         return "all"
 
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：watchlist-cmd）。"""
         return ["分析全部", "全部分析", "跑一遍"]
 
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：watchlist-cmd）。"""
         return "立即分析所有自选股"
 
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：watchlist-cmd）。"""
         return "/all"
 
     def validate_args(self, args: List[str]) -> Optional[str]:
+        """业务流程函数：validate_args（模块：watchlist-cmd）。"""
         return None  # 不需要参数
 
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:
+        """业务流程函数：execute（模块：watchlist-cmd）。"""
         logger.info("[AnalyzeAllCommand] 触发全量自选股分析")
 
         try:

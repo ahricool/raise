@@ -328,6 +328,7 @@ async def task_stream():
         StreamingResponse: SSE 事件流
     """
     async def event_generator():
+        """业务流程函数：event_generator（模块：analysis）。"""
         task_queue = get_task_queue()
         event_queue: asyncio.Queue = asyncio.Queue()
         

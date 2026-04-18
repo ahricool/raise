@@ -418,6 +418,7 @@ def query_stock_data(stock_code: str, days: int = 10):
 
 
 def main():
+    """业务流程函数：main（模块：test-env）。"""
     parser = argparse.ArgumentParser(
         description='A股自选股智能分析系统 - 环境验证测试',
         formatter_class=argparse.RawDescriptionHelpFormatter,

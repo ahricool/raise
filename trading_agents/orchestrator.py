@@ -77,6 +77,7 @@ class MultiAgentOrchestrator:
             step_counter = {"current": 0}
 
             def _progress_wrapper(node_name: str, status: str) -> None:
+                """内部辅助逻辑：_progress_wrapper（模块：orchestrator）。"""
                 if status == "completed":
                     step_counter["current"] += 1
                 if self.progress_callback:

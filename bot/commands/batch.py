@@ -28,18 +28,22 @@ class BatchCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：batch）。"""
         return "batch"
     
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：batch）。"""
         return ["b", "批量", "全部"]
     
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：batch）。"""
         return "批量分析自选股"
     
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：batch）。"""
         return "/batch [数量]"
     
     @property

@@ -357,10 +357,12 @@ def get_no_data_text(language: Optional[str]) -> str:
 
 
 def _normalize_lookup_key(value: Any) -> str:
+    """内部辅助逻辑：_normalize_lookup_key（模块：report-language）。"""
     return str(value or "").strip().lower().replace("_", " ").replace("-", " ")
 
 
 def _iter_lookup_candidates(value: Any) -> list[str]:
+    """内部辅助逻辑：_iter_lookup_candidates（模块：report-language）。"""
     raw_text = str(value or "").strip()
     if not raw_text:
         return []
@@ -374,6 +376,7 @@ def _iter_lookup_candidates(value: Any) -> list[str]:
 
 
 def _canonicalize_lookup_value(value: Any, canonical_map: Dict[str, str]) -> Optional[str]:
+    """内部辅助逻辑：_canonicalize_lookup_value（模块：report-language）。"""
     for candidate in _iter_lookup_candidates(value):
         canonical = canonical_map.get(_normalize_lookup_key(candidate))
         if canonical:
@@ -382,6 +385,7 @@ def _canonicalize_lookup_value(value: Any, canonical_map: Dict[str, str]) -> Opt
 
 
 def _is_placeholder_stock_name(value: Any, code: Any = None) -> bool:
+    """内部辅助逻辑：_is_placeholder_stock_name（模块：report-language）。"""
     text = str(value or "").strip()
     if not text:
         return True
@@ -406,6 +410,7 @@ def _translate_from_map(
     canonical_map: Dict[str, str],
     translations: Dict[str, Dict[str, str]],
 ) -> str:
+    """内部辅助逻辑：_translate_from_map（模块：report-language）。"""
     normalized_language = normalize_report_language(language)
     raw_text = str(value or "").strip()
     if not raw_text:

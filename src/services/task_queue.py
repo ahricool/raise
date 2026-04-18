@@ -95,6 +95,7 @@ class DuplicateTaskError(Exception):
     当股票已在分析中时抛出此异常
     """
     def __init__(self, stock_code: str, existing_task_id: str):
+        """内部辅助逻辑：__init__（模块：task-queue）。"""
         self.stock_code = stock_code
         self.existing_task_id = existing_task_id
         super().__init__(f"股票 {stock_code} 正在分析中 (task_id: {existing_task_id})")
@@ -117,6 +118,7 @@ class AnalysisTaskQueue:
     _instance_lock = threading.Lock()
     
     def __new__(cls, *args, **kwargs):
+        """内部辅助逻辑：__new__（模块：task-queue）。"""
         if cls._instance is None:
             with cls._instance_lock:
                 if cls._instance is None:
@@ -125,6 +127,7 @@ class AnalysisTaskQueue:
     
     def __init__(self, max_workers: int = 10):
         # 防止重复初始化
+        """内部辅助逻辑：__init__（模块：task-queue）。"""
         if hasattr(self, '_initialized') and self._initialized:
             return
         

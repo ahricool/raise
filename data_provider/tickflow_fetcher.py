@@ -17,6 +17,7 @@ class TickFlowFetcher:
     BASE_URL = "https://api.tickflow.cn/v1"
 
     def __init__(self, api_key: Optional[str] = None):
+        """内部辅助逻辑：__init__（模块：tickflow-fetcher）。"""
         from src.config import get_config
         config = get_config()
         self._api_key = api_key or getattr(config, 'tickflow_api_key', None)
@@ -26,10 +27,12 @@ class TickFlowFetcher:
 
     @property
     def is_available(self) -> bool:
+        """业务流程函数：is_available（模块：tickflow-fetcher）。"""
         return self._available
 
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：tickflow-fetcher）。"""
         return "TickFlowFetcher"
 
     def get_realtime_quote(self, stock_code: str) -> Optional[Dict[str, Any]]:

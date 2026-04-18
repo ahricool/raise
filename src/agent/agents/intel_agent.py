@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class IntelAgent(BaseAgent):
+    """业务实体类：IntelAgent。"""
     agent_name = "intel"
     max_steps = 4
     tool_names = [
@@ -32,6 +33,7 @@ class IntelAgent(BaseAgent):
     ]
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """业务流程函数：system_prompt（模块：intel-agent）。"""
         return """\
 You are an **Intelligence & Sentiment Agent** specialising in A-shares, \
 HK, and US equities.
@@ -79,6 +81,7 @@ Return **only** a JSON object:
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """业务流程函数：build_user_message（模块：intel-agent）。"""
         parts = [f"Gather intelligence and assess sentiment for stock **{ctx.stock_code}**"]
         if ctx.stock_name:
             parts[0] += f" ({ctx.stock_name})"
@@ -93,6 +96,7 @@ Return **only** a JSON object:
         return "\n".join(parts)
 
     def post_process(self, ctx: AgentContext, raw_text: str) -> Optional[AgentOpinion]:
+        """业务流程函数：post_process（模块：intel-agent）。"""
         parsed = try_parse_json(raw_text)
         if parsed is None:
             logger.warning("[IntelAgent] failed to parse opinion JSON")

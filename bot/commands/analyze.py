@@ -27,18 +27,22 @@ class AnalyzeCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：analyze）。"""
         return "analyze"
     
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：analyze）。"""
         return ["a", "分析", "查"]
     
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：analyze）。"""
         return "分析指定股票"
     
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：analyze）。"""
         return "/analyze <股票代码> [full] [multi]"
 
     def validate_args(self, args: List[str]) -> Optional[str]:

@@ -23,6 +23,7 @@ class RootResponse(BaseModel):
     # The Config inner class is used by Pydantic to provide model configuration.
     # Here, it specifies an example JSON schema for documentation and OpenAPI generation.
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "message": "Daily Stock Analysis API is running",
@@ -38,6 +39,7 @@ class HealthResponse(BaseModel):
     timestamp: Optional[str] = Field(None, description="时间戳")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "status": "ok",
@@ -54,6 +56,7 @@ class ErrorResponse(BaseModel):
     detail: Optional[Any] = Field(None, description="附加错误信息")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "error": "not_found",
@@ -71,6 +74,7 @@ class SuccessResponse(BaseModel):
     data: Optional[Any] = Field(None, description="响应数据")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "success": True,

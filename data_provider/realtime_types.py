@@ -287,6 +287,7 @@ class CircuitBreaker:
         cooldown_seconds: float = 300.0,  # 冷却时间（秒），默认5分钟
         half_open_max_calls: int = 1      # 半开状态最大尝试次数
     ):
+        """内部辅助逻辑：__init__（模块：realtime-types）。"""
         self.failure_threshold = failure_threshold
         self.cooldown_seconds = cooldown_seconds
         self.half_open_max_calls = half_open_max_calls

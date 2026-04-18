@@ -49,6 +49,7 @@ def _wrap_with_progress(
     progress_callback(node_name, status)  status: "started" | "completed" | "error"
     """
     def wrapped(state: GraphState) -> Dict[str, Any]:
+        """业务流程函数：wrapped（模块：workflow）。"""
         if progress_callback:
             try:
                 progress_callback(node_name, "started")
@@ -97,6 +98,7 @@ def build_graph(
         llm = RaiseLLMClient()
 
     def wrap(fn, name):
+        """业务流程函数：wrap（模块：workflow）。"""
         return _wrap_with_progress(fn, name, llm, progress_callback)
 
     graph = StateGraph(GraphState)

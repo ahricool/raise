@@ -45,6 +45,7 @@ class SkillAggregator:
         ctx: AgentContext,
         min_samples: int = _MIN_BACKTEST_SAMPLES,
     ) -> Optional[AgentOpinion]:
+        """业务流程函数：aggregate（模块：aggregator）。"""
         skill_opinions = [op for op in ctx.opinions if is_skill_agent_name(op.agent_name)]
         if not skill_opinions:
             return None
@@ -122,6 +123,7 @@ class SkillAggregator:
         min_samples: int,
         perf_weight: Optional[float] = None,
     ) -> float:
+        """内部辅助逻辑：_compute_weight（模块：aggregator）。"""
         base_weight = opinion.confidence
         if perf_weight is not None:
             return base_weight * perf_weight
@@ -129,6 +131,7 @@ class SkillAggregator:
 
     @staticmethod
     def _backtest_factor(agent_name: str, min_samples: int) -> float:
+        """内部辅助逻辑：_backtest_factor（模块：aggregator）。"""
         if not SkillAggregator._use_backtest_autoweight():
             return 1.0
 
@@ -147,6 +150,7 @@ class SkillAggregator:
 
     @staticmethod
     def _use_backtest_autoweight() -> bool:
+        """内部辅助逻辑：_use_backtest_autoweight（模块：aggregator）。"""
         try:
             from src.config import get_config
 

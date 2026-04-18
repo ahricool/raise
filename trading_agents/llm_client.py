@@ -21,6 +21,7 @@ class RaiseLLMClient:
     """
 
     def __init__(self, temperature: Optional[float] = None):
+        """内部辅助逻辑：__init__（模块：llm-client）。"""
         self.config = get_config()
         self.temperature = temperature if temperature is not None else self.config.multi_agent_llm_temperature
         self._gemini_client = None
@@ -28,6 +29,7 @@ class RaiseLLMClient:
         self._init_clients()
 
     def _init_clients(self) -> None:
+        """内部辅助逻辑：_init_clients（模块：llm-client）。"""
         if self.config.gemini_api_key:
             try:
                 import google.generativeai as genai
@@ -76,6 +78,7 @@ class RaiseLLMClient:
         raise RuntimeError("所有 LLM 客户端均不可用，请检查 API Key 配置")
 
     def _call_gemini(self, system_prompt: str, user_prompt: str, temperature: float) -> Optional[str]:
+        """内部辅助逻辑：_call_gemini（模块：llm-client）。"""
         max_retries = self.config.gemini_max_retries
         retry_delay = self.config.gemini_retry_delay
 
@@ -110,6 +113,7 @@ class RaiseLLMClient:
         return None
 
     def _call_openai(self, system_prompt: str, user_prompt: str, temperature: float) -> Optional[str]:
+        """内部辅助逻辑：_call_openai（模块：llm-client）。"""
         try:
             response = self._openai_client.chat.completions.create(
                 model=self.config.openai_model,

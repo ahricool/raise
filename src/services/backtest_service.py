@@ -20,6 +20,7 @@ class BacktestService:
     """Service layer to run and query backtests."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """内部辅助逻辑：__init__（模块：backtest-service）。"""
         self.db = db_manager or DatabaseManager.get_instance()
         self.repo = BacktestRepository(self.db)
         self.stock_repo = StockRepository(self.db)
@@ -33,6 +34,7 @@ class BacktestService:
         min_age_days: Optional[int] = None,
         limit: int = 200,
     ) -> Dict[str, Any]:
+        """业务流程函数：run_backtest（模块：backtest-service）。"""
         config = get_config()
 
         if eval_window_days is None:
@@ -209,12 +211,14 @@ class BacktestService:
         }
 
     def get_recent_evaluations(self, *, code: Optional[str], eval_window_days: Optional[int] = None, limit: int = 50, page: int = 1) -> Dict[str, Any]:
+        """业务流程函数：get_recent_evaluations（模块：backtest-service）。"""
         offset = max(page - 1, 0) * limit
         rows, total = self.repo.get_results_paginated(code=code, eval_window_days=eval_window_days, days=None, offset=offset, limit=limit)
         items = [self._result_to_dict(r) for r in rows]
         return {"total": total, "page": page, "limit": limit, "items": items}
 
     def get_summary(self, *, scope: str, code: Optional[str], eval_window_days: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """业务流程函数：get_summary（模块：backtest-service）。"""
         config = get_config()
         engine_version = str(getattr(config, "backtest_engine_version", "v1"))
         lookup_code = OVERALL_SENTINEL_CODE if scope == "overall" else code
@@ -229,6 +233,7 @@ class BacktestService:
         return self._summary_to_dict(summary)
 
     def _resolve_analysis_date(self, analysis) -> Optional[date]:
+        """内部辅助逻辑：_resolve_analysis_date（模块：backtest-service）。"""
         parsed = self.repo.parse_analysis_date_from_snapshot(analysis.context_snapshot)
         if parsed:
             return parsed
@@ -238,6 +243,7 @@ class BacktestService:
         return None
 
     def _try_fill_daily_data(self, *, code: str, analysis_date: date, eval_window_days: int) -> None:
+        """内部辅助逻辑：_try_fill_daily_data（模块：backtest-service）。"""
         try:
             from data_provider.base import DataFetcherManager
 
@@ -257,6 +263,7 @@ class BacktestService:
             logger.warning(f"补全日线数据失败({code}): {exc}")
 
     def _recompute_summaries(self, *, touched_codes: List[str], eval_window_days: int, engine_version: str) -> None:
+        """内部辅助逻辑：_recompute_summaries（模块：backtest-service）。"""
         with self.db.get_session() as session:
             # overall
             overall_rows = session.execute(
@@ -299,6 +306,7 @@ class BacktestService:
 
     @staticmethod
     def _build_summary_model(summary_data: Dict[str, Any]) -> BacktestSummary:
+        """内部辅助逻辑：_build_summary_model（模块：backtest-service）。"""
         return BacktestSummary(
             scope=summary_data.get("scope"),
             code=summary_data.get("code"),
@@ -328,6 +336,7 @@ class BacktestService:
 
     @staticmethod
     def _result_to_dict(row: BacktestResult) -> Dict[str, Any]:
+        """内部辅助逻辑：_result_to_dict（模块：backtest-service）。"""
         return {
             "analysis_history_id": row.analysis_history_id,
             "code": row.code,
@@ -361,6 +370,7 @@ class BacktestService:
 
     @staticmethod
     def _summary_to_dict(row: BacktestSummary) -> Dict[str, Any]:
+        """内部辅助逻辑：_summary_to_dict（模块：backtest-service）。"""
         return {
             "scope": row.scope,
             "code": None if row.code == OVERALL_SENTINEL_CODE else row.code,

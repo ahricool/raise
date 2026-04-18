@@ -51,6 +51,7 @@ class BaseAgent(ABC):
         skill_instructions: str = "",
         technical_skill_policy: str = "",
     ):
+        """内部辅助逻辑：__init__（模块：base-agent）。"""
         self.tool_registry = tool_registry
         self.llm_adapter = llm_adapter
         self.skill_instructions = skill_instructions

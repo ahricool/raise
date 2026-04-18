@@ -83,16 +83,20 @@ def extract_signal(text: str) -> str:
 
 
 def signal_to_operation_advice(signal: str) -> str:
+    """业务流程函数：signal_to_operation_advice（模块：signal-processing）。"""
     return _SIGNAL_TO_ADVICE.get(signal, "持有")
 
 
 def signal_to_trend_prediction(signal: str) -> str:
+    """业务流程函数：signal_to_trend_prediction（模块：signal-processing）。"""
     return _SIGNAL_TO_TREND.get(signal, "震荡")
 
 
 def signal_to_score(signal: str) -> int:
+    """业务流程函数：signal_to_score（模块：signal-processing）。"""
     return _SIGNAL_TO_SCORE.get(signal, 50)
 
 
 def signal_to_decision_type(signal: str) -> str:
+    """业务流程函数：signal_to_decision_type（模块：signal-processing）。"""
     return _SIGNAL_TO_DECISION_TYPE.get(signal, "hold")

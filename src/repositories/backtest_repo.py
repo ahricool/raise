@@ -19,6 +19,7 @@ class BacktestRepository:
     """DB access layer for backtesting."""
 
     def __init__(self, db_manager: Optional[DatabaseManager] = None):
+        """内部辅助逻辑：__init__（模块：backtest-repo）。"""
         self.db = db_manager or DatabaseManager.get_instance()
 
     def get_candidates(
@@ -55,11 +56,13 @@ class BacktestRepository:
             return list(rows)
 
     def save_result(self, result: BacktestResult) -> None:
+        """业务流程函数：save_result（模块：backtest-repo）。"""
         with self.db.get_session() as session:
             session.add(result)
             session.commit()
 
     def save_results_batch(self, results: List[BacktestResult], *, replace_existing: bool = False) -> int:
+        """业务流程函数：save_results_batch（模块：backtest-repo）。"""
         if not results:
             return 0
 
@@ -98,6 +101,7 @@ class BacktestRepository:
         offset: int,
         limit: int,
     ) -> Tuple[List[BacktestResult], int]:
+        """业务流程函数：get_results_paginated（模块：backtest-repo）。"""
         with self.db.get_session() as session:
             conditions = []
             if code:
@@ -174,6 +178,7 @@ class BacktestRepository:
         eval_window_days: Optional[int] = None,
         engine_version: str,
     ) -> Optional[BacktestSummary]:
+        """业务流程函数：get_summary（模块：backtest-repo）。"""
         with self.db.get_session() as session:
             conditions = [
                 BacktestSummary.scope == scope,
@@ -193,6 +198,7 @@ class BacktestRepository:
 
     @staticmethod
     def parse_analysis_date_from_snapshot(context_snapshot: Optional[str]) -> Optional[date]:
+        """业务流程函数：parse_analysis_date_from_snapshot（模块：backtest-repo）。"""
         if not context_snapshot:
             return None
 

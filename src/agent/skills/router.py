@@ -30,6 +30,7 @@ class SkillRouter:
         ctx: AgentContext,
         max_count: int = 3,
     ) -> List[str]:
+        """业务流程函数：select_skills（模块：router）。"""
         requested_skills = ctx.meta.get("skills_requested") or ctx.meta.get("strategies_requested", [])
         if requested_skills:
             logger.info("[SkillRouter] user-requested skills: %s", requested_skills)
@@ -73,6 +74,7 @@ class SkillRouter:
         return self.select_skills(ctx, max_count=max_count)
 
     def _detect_regime(self, ctx: AgentContext) -> Optional[str]:
+        """内部辅助逻辑：_detect_regime（模块：router）。"""
         for op in ctx.opinions:
             if op.agent_name != "technical":
                 continue
@@ -100,6 +102,7 @@ class SkillRouter:
 
     @staticmethod
     def _get_routing_mode() -> str:
+        """内部辅助逻辑：_get_routing_mode（模块：router）。"""
         try:
             from src.config import get_config
 
@@ -111,10 +114,12 @@ class SkillRouter:
 
     @staticmethod
     def _get_available_ids() -> set:
+        """内部辅助逻辑：_get_available_ids（模块：router）。"""
         return {skill.name for skill in SkillRouter._get_available_skills()}
 
     @staticmethod
     def _get_available_skills() -> list:
+        """内部辅助逻辑：_get_available_skills（模块：router）。"""
         try:
             from src.agent.factory import _SKILL_MANAGER_PROTOTYPE
 
@@ -131,6 +136,7 @@ class SkillRouter:
 
     @classmethod
     def _get_manual_skills(cls, max_count: int) -> List[str]:
+        """内部辅助逻辑：_get_manual_skills（模块：router）。"""
         configured: List[str] = []
         try:
             from src.config import get_config

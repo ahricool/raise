@@ -31,6 +31,7 @@ class StockQuote(BaseModel):
     update_time: Optional[str] = Field(None, description="更新时间")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "stock_code": "600519",
@@ -62,6 +63,7 @@ class KLineData(BaseModel):
     change_percent: Optional[float] = Field(None, description="涨跌幅 (%)")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "date": "2024-01-01",
@@ -85,6 +87,7 @@ class StockHistoryResponse(BaseModel):
     data: List[KLineData] = Field(default_factory=list, description="K 线数据列表")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "stock_code": "600519",

@@ -38,6 +38,7 @@ class TaskService:
     _lock = threading.Lock()
 
     def __init__(self, max_workers: int = 3):
+        """内部辅助逻辑：__init__（模块：task-service）。"""
         self._executor: Optional[ThreadPoolExecutor] = None
         self._max_workers = max_workers
         self._tasks: Dict[str, Dict[str, Any]] = {}

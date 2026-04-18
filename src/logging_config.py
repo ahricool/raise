@@ -43,6 +43,7 @@ class InterceptHandler(logging.Handler):
     """Forward stdlib logging records into loguru."""
 
     def emit(self, record: logging.LogRecord) -> None:
+        """业务流程函数：emit（模块：logging-config）。"""
         try:
             level = logger.level(record.levelname).name
         except ValueError:

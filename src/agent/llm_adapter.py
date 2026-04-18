@@ -139,6 +139,7 @@ class LLMToolAdapter:
     """
 
     def __init__(self, config=None):
+        """内部辅助逻辑：__init__（模块：llm-adapter）。"""
         config = config or get_config()
         self._config = config
         self._router = None          # litellm Router (multi-key primary model)

@@ -47,6 +47,7 @@ __all__ = [
 
 
 def __getattr__(name):
+    """内部辅助逻辑：__getattr__（模块：--init--）。"""
     if name == "SkillAgent":
         from src.agent.skills.skill_agent import SkillAgent
 

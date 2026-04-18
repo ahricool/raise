@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class TechnicalAgent(BaseAgent):
+    """业务实体类：TechnicalAgent。"""
     agent_name = "technical"
     max_steps = 6
     tool_names = [
@@ -35,6 +36,7 @@ class TechnicalAgent(BaseAgent):
     ]
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """业务流程函数：system_prompt（模块：technical-agent）。"""
         skills = ""
         if self.skill_instructions:
             skills = f"\n## Active Trading Skills\n\n{self.skill_instructions}\n"
@@ -76,6 +78,7 @@ Return **only** a JSON object (no markdown fences):
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """业务流程函数：build_user_message（模块：technical-agent）。"""
         parts = [f"Perform technical analysis on stock **{ctx.stock_code}**"]
         if ctx.stock_name:
             parts[0] += f" ({ctx.stock_name})"

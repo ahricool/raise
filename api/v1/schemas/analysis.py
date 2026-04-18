@@ -84,6 +84,7 @@ class AnalysisResultResponse(BaseModel):
     created_at: str = Field(..., description="创建时间")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "query_id": "abc123def456",
@@ -112,6 +113,7 @@ class TaskAccepted(BaseModel):
     message: Optional[str] = Field(None, description="提示信息")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "task_id": "task_abc123",
@@ -146,6 +148,7 @@ class TaskStatus(BaseModel):
     )
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "task_id": "task_abc123",
@@ -177,6 +180,7 @@ class TaskInfo(BaseModel):
     error: Optional[str] = Field(None, description="错误信息（仅在 failed 时存在）")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "task_id": "abc123def456",
@@ -203,6 +207,7 @@ class TaskListResponse(BaseModel):
     tasks: List[TaskInfo] = Field(..., description="任务列表")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "total": 3,
@@ -222,6 +227,7 @@ class DuplicateTaskErrorResponse(BaseModel):
     existing_task_id: str = Field(..., description="已存在的任务 ID")
     
     class Config:
+        """业务实体类：Config。"""
         json_schema_extra = {
             "example": {
                 "error": "duplicate_task",

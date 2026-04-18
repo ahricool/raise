@@ -12,6 +12,7 @@ from typing_extensions import TypedDict
 
 class GraphState(TypedDict, total=False):
     # === 输入 ===
+    """业务实体类：GraphState。"""
     stock_code: str
     stock_name: str
     enhanced_context: Dict[str, Any]   # StockAnalysisPipeline 已构建的增强上下文

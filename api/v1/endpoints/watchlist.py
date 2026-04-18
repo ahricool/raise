@@ -32,6 +32,7 @@ router = APIRouter()
     summary="获取自选股列表",
 )
 def list_watchlist(db: Session = Depends(get_db)) -> WatchlistResponse:
+    """业务流程函数：list_watchlist（模块：watchlist）。"""
     svc = WatchlistService()
     items = svc.list_stocks(db)
     return WatchlistResponse(
@@ -48,6 +49,7 @@ def list_watchlist(db: Session = Depends(get_db)) -> WatchlistResponse:
 def search_stock(
     q: str = Query(..., min_length=1, description="股票代码或名称关键词"),
 ) -> StockSearchResponse:
+    """业务流程函数：search_stock（模块：watchlist）。"""
     svc = WatchlistService()
     results = svc.search_stock(q)
     return StockSearchResponse(
@@ -65,6 +67,7 @@ def add_watchlist(
     body: AddWatchlistRequest,
     db: Session = Depends(get_db),
 ) -> WatchlistItem:
+    """业务流程函数：add_watchlist（模块：watchlist）。"""
     if not body.stock_code or not body.stock_code.strip():
         raise HTTPException(status_code=422, detail={"error": "invalid_code", "message": "股票代码不能为空"})
 
@@ -85,6 +88,7 @@ def remove_watchlist(
     stock_id: int,
     db: Session = Depends(get_db),
 ) -> dict:
+    """业务流程函数：remove_watchlist（模块：watchlist）。"""
     svc = WatchlistService()
     ok = svc.remove_stock(db, stock_id)
     if not ok:

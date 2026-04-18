@@ -72,6 +72,7 @@ class AgentMemory:
     """
 
     def __init__(self, enabled: bool = False, min_samples: int = _MIN_CALIBRATION_SAMPLES):
+        """内部辅助逻辑：__init__（模块：memory）。"""
         self.enabled = enabled
         self.min_samples = min_samples
 

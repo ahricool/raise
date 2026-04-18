@@ -30,9 +30,11 @@ class DecisionAgent(BaseAgent):
 
     @staticmethod
     def _is_chat_mode(ctx: AgentContext) -> bool:
+        """内部辅助逻辑：_is_chat_mode（模块：decision-agent）。"""
         return ctx.meta.get("response_mode") == "chat"
 
     def system_prompt(self, ctx: AgentContext) -> str:
+        """业务流程函数：system_prompt（模块：decision-agent）。"""
         report_language = normalize_report_language(ctx.meta.get("report_language", "zh"))
         if self._is_chat_mode(ctx):
             prompt = """\
@@ -118,6 +120,7 @@ new decision_type values.
 """
 
     def build_user_message(self, ctx: AgentContext) -> str:
+        """业务流程函数：build_user_message（模块：decision-agent）。"""
         if self._is_chat_mode(ctx):
             parts = [
                 "# User Question",

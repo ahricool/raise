@@ -91,6 +91,7 @@ def get_default_technical_skill_policy(*, explicit_skill_selection: bool) -> str
 
 @lru_cache(maxsize=1)
 def _load_builtin_skill_catalog() -> tuple[object, ...]:
+    """内部辅助逻辑：_load_builtin_skill_catalog（模块：defaults）。"""
     try:
         from src.agent.skills.base import load_skills_from_directory
 
@@ -100,6 +101,7 @@ def _load_builtin_skill_catalog() -> tuple[object, ...]:
 
 
 def _coerce_priority(value: object, default: int = 100) -> int:
+    """内部辅助逻辑：_coerce_priority（模块：defaults）。"""
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -107,6 +109,7 @@ def _coerce_priority(value: object, default: int = 100) -> int:
 
 
 def _normalize_available_ids(available_skill_ids: Optional[Iterable[str]]) -> List[str]:
+    """内部辅助逻辑：_normalize_available_ids（模块：defaults）。"""
     normalized: List[str] = []
     if available_skill_ids is None:
         return normalized
@@ -122,6 +125,7 @@ def _normalize_skill_inputs(
     skills: Optional[Iterable[object]],
     available_skill_ids: Optional[Iterable[str]] = None,
 ) -> tuple[List[object], List[str]]:
+    """内部辅助逻辑：_normalize_skill_inputs（模块：defaults）。"""
     normalized_available = _normalize_available_ids(available_skill_ids)
 
     if skills is None:
@@ -140,6 +144,7 @@ def _normalize_skill_inputs(
 
 
 def _sort_skill_pool(skills: Iterable[object]) -> List[object]:
+    """内部辅助逻辑：_sort_skill_pool（模块：defaults）。"""
     return sorted(
         skills,
         key=lambda skill: (
@@ -156,6 +161,7 @@ def _iter_candidate_skills(
     available_skill_ids: Optional[Iterable[str]] = None,
     user_invocable_only: bool = True,
 ) -> tuple[List[object], List[str]]:
+    """内部辅助逻辑：_iter_candidate_skills（模块：defaults）。"""
     skill_pool, normalized_available = _normalize_skill_inputs(skills, available_skill_ids)
     available_lookup = set(normalized_available)
 
@@ -174,12 +180,14 @@ def _iter_candidate_skills(
 
 
 def _slice_skill_ids(skill_ids: List[str], max_count: Optional[int]) -> List[str]:
+    """内部辅助逻辑：_slice_skill_ids（模块：defaults）。"""
     if max_count is None:
         return skill_ids
     return skill_ids[:max_count]
 
 
 def _pick_primary_default_skill_id(candidates: List[object]) -> str:
+    """内部辅助逻辑：_pick_primary_default_skill_id（模块：defaults）。"""
     preferred = [
         str(getattr(skill, "name", "")).strip()
         for skill in candidates
@@ -200,6 +208,7 @@ def get_default_active_skill_ids(
     max_count: Optional[int] = None,
     available_skill_ids: Optional[Iterable[str]] = None,
 ) -> List[str]:
+    """业务流程函数：get_default_active_skill_ids（模块：defaults）。"""
     candidates, normalized_available = _iter_candidate_skills(
         skills,
         available_skill_ids=available_skill_ids,
@@ -216,6 +225,7 @@ def get_default_router_skill_ids(
     max_count: Optional[int] = None,
     available_skill_ids: Optional[Iterable[str]] = None,
 ) -> List[str]:
+    """业务流程函数：get_default_router_skill_ids（模块：defaults）。"""
     candidates, normalized_available = _iter_candidate_skills(
         skills,
         available_skill_ids=available_skill_ids,
@@ -241,6 +251,7 @@ def get_regime_skill_ids(
     max_count: Optional[int] = None,
     available_skill_ids: Optional[Iterable[str]] = None,
 ) -> List[str]:
+    """业务流程函数：get_regime_skill_ids（模块：defaults）。"""
     candidates, normalized_available = _iter_candidate_skills(
         skills,
         available_skill_ids=available_skill_ids,
@@ -271,11 +282,13 @@ def get_primary_default_skill_id(
     skills: Optional[Iterable[object]] = None,
     available_skill_ids: Optional[Iterable[str]] = None,
 ) -> str:
+    """业务流程函数：get_primary_default_skill_id（模块：defaults）。"""
     defaults = get_default_active_skill_ids(skills, max_count=1, available_skill_ids=available_skill_ids)
     return defaults[0] if defaults else ""
 
 
 def _build_regime_skill_ids(skills: Iterable[object]) -> Dict[str, List[str]]:
+    """内部辅助逻辑：_build_regime_skill_ids（模块：defaults）。"""
     regime_map: Dict[str, List[str]] = {}
     for skill in _sort_skill_pool(skills):
         skill_id = str(getattr(skill, "name", "")).strip()
@@ -296,10 +309,12 @@ REGIME_SKILL_IDS: Dict[str, List[str]] = _build_regime_skill_ids(_load_builtin_s
 
 
 def build_skill_agent_name(skill_id: str) -> str:
+    """业务流程函数：build_skill_agent_name（模块：defaults）。"""
     return f"{SKILL_AGENT_PREFIX}{skill_id}"
 
 
 def extract_skill_id(agent_name: Optional[str]) -> Optional[str]:
+    """业务流程函数：extract_skill_id（模块：defaults）。"""
     if not agent_name or not isinstance(agent_name, str):
         return None
     for prefix in (SKILL_AGENT_PREFIX, LEGACY_STRATEGY_AGENT_PREFIX):
@@ -309,8 +324,10 @@ def extract_skill_id(agent_name: Optional[str]) -> Optional[str]:
 
 
 def is_skill_agent_name(agent_name: Optional[str]) -> bool:
+    """业务流程函数：is_skill_agent_name（模块：defaults）。"""
     return extract_skill_id(agent_name) is not None
 
 
 def is_skill_consensus_name(agent_name: Optional[str]) -> bool:
+    """业务流程函数：is_skill_consensus_name（模块：defaults）。"""
     return agent_name in {SKILL_CONSENSUS_AGENT_NAME, LEGACY_STRATEGY_CONSENSUS_AGENT_NAME}

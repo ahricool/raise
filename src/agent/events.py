@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class AlertType(str, Enum):
+    """业务实体类：AlertType。"""
     PRICE_CROSS = "price_cross"
     VOLUME_SPIKE = "volume_spike"
     SENTIMENT_SHIFT = "sentiment_shift"
@@ -44,6 +45,7 @@ class AlertType(str, Enum):
 
 
 class AlertStatus(str, Enum):
+    """业务实体类：AlertStatus。"""
     ACTIVE = "active"
     TRIGGERED = "triggered"
     EXPIRED = "expired"
@@ -57,10 +59,12 @@ _RUNTIME_SUPPORTED_ALERT_TYPES = frozenset({
 
 
 def _supported_alert_type_names() -> str:
+    """内部辅助逻辑：_supported_alert_type_names（模块：events）。"""
     return ", ".join(sorted(alert_type.value for alert_type in _RUNTIME_SUPPORTED_ALERT_TYPES))
 
 
 def _ensure_runtime_supported_alert_type(alert_type: AlertType) -> None:
+    """内部辅助逻辑：_ensure_runtime_supported_alert_type（模块：events）。"""
     if alert_type not in _RUNTIME_SUPPORTED_ALERT_TYPES:
         raise ValueError(
             f"unsupported alert_type for current EventMonitor runtime: {alert_type.value} "
@@ -89,6 +93,7 @@ class PriceAlert(AlertRule):
     price: float = 0.0
 
     def __post_init__(self):
+        """内部辅助逻辑：__post_init__（模块：events）。"""
         if not self.description:
             self.description = f"{self.stock_code} price {self.direction} {self.price}"
 
@@ -100,6 +105,7 @@ class VolumeAlert(AlertRule):
     multiplier: float = 2.0  # trigger when volume > multiplier × avg
 
     def __post_init__(self):
+        """内部辅助逻辑：__post_init__（模块：events）。"""
         if not self.description:
             self.description = f"{self.stock_code} volume > {self.multiplier}× average"
 
@@ -112,6 +118,7 @@ class SentimentAlert(AlertRule):
     to_sentiment: str = "negative"
 
     def __post_init__(self):
+        """内部辅助逻辑：__post_init__（模块：events）。"""
         if not self.description:
             self.description = f"{self.stock_code} sentiment shift: {self.from_sentiment} → {self.to_sentiment}"
 
@@ -134,6 +141,7 @@ class EventMonitor:
     """
 
     def __init__(self):
+        """内部辅助逻辑：__init__（模块：events）。"""
         self.rules: List[AlertRule] = []
         self._callbacks: List[Callable[[TriggeredAlert], None]] = []
 
@@ -212,6 +220,7 @@ class EventMonitor:
         """Check price alert against realtime quote."""
         try:
             def _fetch_quote():
+                """内部辅助逻辑：_fetch_quote（模块：events）。"""
                 from data_provider import DataFetcherManager
 
                 fm = DataFetcherManager()
@@ -246,6 +255,7 @@ class EventMonitor:
         """Check volume spike against recent average."""
         try:
             def _fetch_daily_data():
+                """内部辅助逻辑：_fetch_daily_data（模块：events）。"""
                 from data_provider import DataFetcherManager
 
                 fm = DataFetcherManager()
@@ -440,6 +450,7 @@ def build_event_monitor_from_config(config=None, notifier=None) -> Optional[Even
     notification_service = notifier or NotificationService()
 
     def _notify(triggered: TriggeredAlert) -> None:
+        """内部辅助逻辑：_notify（模块：events）。"""
         title = f"Event Alert | {triggered.rule.stock_code}"
         content = triggered.message or triggered.rule.description or "Alert triggered"
         alert_text = NotificationBuilder.build_simple_alert(title=title, content=content, alert_type="warning")

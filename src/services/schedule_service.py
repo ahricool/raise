@@ -41,12 +41,14 @@ class SchedulerService:
     _instance: Optional["SchedulerService"] = None
 
     def __new__(cls) -> "SchedulerService":
+        """内部辅助逻辑：__new__（模块：schedule-service）。"""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
     def __init__(self) -> None:
+        """内部辅助逻辑：__init__（模块：schedule-service）。"""
         if self._initialized:
             return
         self._scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
@@ -234,6 +236,7 @@ class SchedulerService:
         report_type = config.report_type or "simple"
 
         def _fetch_stocks() -> list:
+            """内部辅助逻辑：_fetch_stocks（模块：schedule-service）。"""
             db = DatabaseManager.get_instance().get_session()
             try:
                 return WatchlistService().list_stocks(db)

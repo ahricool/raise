@@ -144,6 +144,7 @@ class StockDaily(Base):
     )
     
     def __repr__(self):
+        """内部辅助逻辑：__repr__（模块：storage）。"""
         return f"<StockDaily(code={self.code}, date={self.date}, close={self.close})>"
     
     def to_dict(self) -> Dict[str, Any]:
@@ -211,6 +212,7 @@ class NewsIntel(Base):
     )
 
     def __repr__(self) -> str:
+        """内部辅助逻辑：__repr__（模块：storage）。"""
         return f"<NewsIntel(code={self.code}, title={self.title[:20]}...)>"
 
 

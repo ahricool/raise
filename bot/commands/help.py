@@ -27,18 +27,22 @@ class HelpCommand(BotCommand):
     
     @property
     def name(self) -> str:
+        """业务流程函数：name（模块：help）。"""
         return "help"
     
     @property
     def aliases(self) -> List[str]:
+        """业务流程函数：aliases（模块：help）。"""
         return ["h", "帮助", "?"]
     
     @property
     def description(self) -> str:
+        """业务流程函数：description（模块：help）。"""
         return "显示帮助信息"
     
     @property
     def usage(self) -> str:
+        """业务流程函数：usage（模块：help）。"""
         return "/help [命令名]"
     
     def execute(self, message: BotMessage, args: List[str]) -> BotResponse:

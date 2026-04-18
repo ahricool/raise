@@ -27,6 +27,7 @@ class LongBridgeFetcher(BaseFetcher):
         app_secret: Optional[str] = None,
         access_token: Optional[str] = None,
     ):
+        """内部辅助逻辑：__init__（模块：longbridge-fetcher）。"""
         from src.config import get_config
         config = get_config()
         self._app_key = app_key or getattr(config, 'longbridge_app_key', None)
@@ -38,6 +39,7 @@ class LongBridgeFetcher(BaseFetcher):
             self._init_client()
 
     def _init_client(self):
+        """内部辅助逻辑：_init_client（模块：longbridge-fetcher）。"""
         try:
             from longbridge.openapi import Config, QuoteContext
             lb_config = Config(
@@ -56,9 +58,11 @@ class LongBridgeFetcher(BaseFetcher):
 
     @property
     def is_available(self) -> bool:
+        """业务流程函数：is_available（模块：longbridge-fetcher）。"""
         return self._available and self._ctx is not None
 
     def get_daily_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """业务流程函数：get_daily_data（模块：longbridge-fetcher）。"""
         if not self.is_available:
             raise DataFetchError("LongBridge 未初始化")
         try:
@@ -90,6 +94,7 @@ class LongBridgeFetcher(BaseFetcher):
             raise DataFetchError(f"LongBridge 获取 {stock_code} 历史数据失败: {e}") from e
 
     def get_realtime_quote(self, stock_code: str) -> Optional[Dict[str, Any]]:
+        """业务流程函数：get_realtime_quote（模块：longbridge-fetcher）。"""
         if not self.is_available:
             return None
         try:
