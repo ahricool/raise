@@ -288,22 +288,7 @@ class MarketAnalyzer:
         try:
             logger.info("[大盘] 调用大模型生成复盘报告...")
             
-            generation_config = {
-                'temperature': 0.7,
-                'max_output_tokens': 2048,
-            }
-            
-            # 根据 analyzer 使用的 API 类型调用
-            if self.analyzer._use_openai:
-                # 使用 OpenAI 兼容 API
-                review = self.analyzer._call_openai_api(prompt, generation_config)
-            else:
-                # 使用 Gemini API
-                response = self.analyzer._model.generate_content(
-                    prompt,
-                    generation_config=generation_config,
-                )
-                review = response.text.strip() if response and response.text else None
+            review = self.analyzer.generate_text(prompt, max_tokens=8192, temperature=0.7)
             
             if review:
                 logger.info(f"[大盘] 复盘报告生成成功，长度: {len(review)} 字符")

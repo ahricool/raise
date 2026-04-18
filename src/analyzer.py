@@ -311,10 +311,10 @@ class AnalysisResult:
 
 class GeminiAnalyzer:
     """
-    Gemini AI 分析器
+    AI 分析器 (LiteLLM 统一接口)
 
     职责：
-    1. 调用 Google Gemini API 进行股票分析
+    1. 通过 LiteLLM 统一调用 Gemini/OpenAI/Anthropic/DeepSeek 等 LLM
     2. 结合预先搜索的新闻和技术面数据生成分析报告
     3. 解析 AI 返回的 JSON 格式结果
 
@@ -508,344 +508,267 @@ class GeminiAnalyzer:
 
     def __init__(self, api_key: Optional[str] = None):
         """
-        初始化 AI 分析器
-
-        优先级：Gemini > OpenAI 兼容 API
+        初始化 AI 分析器（使用 LiteLLM 统一接口）
 
         Args:
-            api_key: Gemini API Key（可选，默认从配置读取）
+            api_key: API Key（可选，默认从配置读取）
         """
+        import litellm as _litellm
+        self._litellm = _litellm
+
         config = get_config()
-        self._api_key = api_key or config.gemini_api_key
-        self._model = None
-        self._current_model_name = None  # 当前使用的模型名称
-        self._using_fallback = False  # 是否正在使用备选模型
-        self._use_openai = False  # 是否使用 OpenAI 兼容 API
-        self._openai_client = None  # OpenAI 客户端
 
-        # 检查 Gemini API Key 是否有效（过滤占位符）
-        gemini_key_valid = self._api_key and not self._api_key.startswith('your_') and len(self._api_key) > 10
+        # --- 多 Key 列表 ---
+        # AIHUBMIX
+        self._aihubmix_key: Optional[str] = config.aihubmix_key
 
-        # 优先尝试初始化 Gemini
-        if gemini_key_valid:
-            try:
-                self._init_model()
-            except Exception as e:
-                logger.warning(f"Gemini 初始化失败: {e}，尝试 OpenAI 兼容 API")
-                self._init_openai_fallback()
-        else:
-            # Gemini Key 未配置，尝试 OpenAI
-            logger.info("Gemini API Key 未配置，尝试使用 OpenAI 兼容 API")
-            self._init_openai_fallback()
+        # Gemini keys (list + single)
+        self._gemini_keys: List[str] = list(config.gemini_api_keys or [])
+        _single_gemini = api_key or config.gemini_api_key
+        if _single_gemini and _single_gemini not in self._gemini_keys:
+            self._gemini_keys.insert(0, _single_gemini)
 
-        # 两者都未配置
-        if not self._model and not self._openai_client:
+        # OpenAI keys
+        self._openai_keys: List[str] = list(config.openai_api_keys or [])
+        _single_openai = config.openai_api_key
+        if _single_openai and _single_openai not in self._openai_keys:
+            self._openai_keys.insert(0, _single_openai)
+
+        # Anthropic keys
+        self._anthropic_keys: List[str] = list(config.anthropic_api_keys or [])
+        _single_anthropic = config.anthropic_api_key
+        if _single_anthropic and _single_anthropic not in self._anthropic_keys:
+            self._anthropic_keys.insert(0, _single_anthropic)
+
+        # DeepSeek keys
+        self._deepseek_keys: List[str] = list(config.deepseek_api_keys or [])
+
+        # Round-robin indices
+        self._gemini_key_idx = 0
+        self._openai_key_idx = 0
+        self._anthropic_key_idx = 0
+        self._deepseek_key_idx = 0
+
+        # Explicit LiteLLM model config
+        self._litellm_model: str = config.litellm_model or ""
+        self._litellm_fallback_models: List[str] = list(config.litellm_fallback_models or [])
+
+        # Build the ordered model list once
+        self._model_chain: List[Dict[str, Any]] = self._build_model_chain()
+
+        # Backward-compat shims for market_analyzer.py
+        self._use_openai: bool = not bool(self._gemini_keys)
+        self._model = None  # kept as None; real calls go through LiteLLM
+        self._openai_client = None
+
+        if not self._model_chain:
             logger.warning("未配置任何 AI API Key，AI 分析功能将不可用")
+        else:
+            logger.info(f"[LiteLLM] 已配置 {len(self._model_chain)} 个模型, 主模型: {self._model_chain[0]['model']}")
 
-    def _init_openai_fallback(self) -> None:
-        """
-        初始化 OpenAI 兼容 API 作为备选
+    # ------------------------------------------------------------------ #
+    #  Helper: key rotation                                                #
+    # ------------------------------------------------------------------ #
 
-        支持所有 OpenAI 格式的 API，包括：
-        - OpenAI 官方
-        - DeepSeek
-        - 通义千问
-        - Moonshot 等
-        """
-        config = get_config()
+    def _next_key(self, keys: List[str], attr: str) -> Optional[str]:
+        """Round-robin key selection."""
+        if not keys:
+            return None
+        idx = getattr(self, attr, 0)
+        key = keys[idx % len(keys)]
+        setattr(self, attr, idx + 1)
+        return key
 
-        # 检查 OpenAI API Key 是否有效（过滤占位符）
-        openai_key_valid = (
-            config.openai_api_key and
-            not config.openai_api_key.startswith('your_') and
-            len(config.openai_api_key) > 10
-        )
+    # ------------------------------------------------------------------ #
+    #  Build ordered model chain                                           #
+    # ------------------------------------------------------------------ #
 
-        if not openai_key_valid:
-            logger.debug("OpenAI 兼容 API 未配置或配置无效")
-            return
+    def _build_model_chain(self) -> List[Dict[str, Any]]:
+        """Build ordered list of {model, api_key, api_base} dicts to try."""
+        chain: List[Dict[str, Any]] = []
 
-        # 分离 import 和客户端创建，以便提供更准确的错误信息
-        try:
-            from openai import OpenAI
-        except ImportError:
-            logger.error("未安装 openai 库，请运行: pip install openai")
-            return
+        # 1. Explicit litellm_model from config takes top priority
+        if self._litellm_model:
+            # Determine key from the model name prefix
+            entry = self._entry_for_model(self._litellm_model)
+            if entry:
+                chain.append(entry)
+            # Add explicit fallbacks
+            for fb in self._litellm_fallback_models:
+                fe = self._entry_for_model(fb)
+                if fe:
+                    chain.append(fe)
+            return chain
 
-        try:
-            # base_url 可选，不填则使用 OpenAI 官方默认地址
-            client_kwargs = {"api_key": config.openai_api_key}
-            if config.openai_base_url and config.openai_base_url.startswith('http'):
-                client_kwargs["base_url"] = config.openai_base_url
+        # 2. Auto-detect from available keys (priority order)
+        # 2a. AIHUBMIX_KEY → openai/gpt-4o-mini via aihubmix base
+        if self._aihubmix_key:
+            chain.append({
+                "model": "openai/gpt-4o-mini",
+                "api_key": self._aihubmix_key,
+                "api_base": "https://aihubmix.com/v1",
+            })
 
-            self._openai_client = OpenAI(**client_kwargs)
-            self._current_model_name = config.openai_model
-            self._use_openai = True
-            logger.info(f"OpenAI 兼容 API 初始化成功 (base_url: {config.openai_base_url}, model: {config.openai_model})")
-        except ImportError as e:
-            # 依赖缺失（如 socksio）
-            if 'socksio' in str(e).lower() or 'socks' in str(e).lower():
-                logger.error(f"OpenAI 客户端需要 SOCKS 代理支持，请运行: pip install httpx[socks] 或 pip install socksio")
-            else:
-                logger.error(f"OpenAI 依赖缺失: {e}")
-        except Exception as e:
-            error_msg = str(e).lower()
-            if 'socks' in error_msg or 'socksio' in error_msg or 'proxy' in error_msg:
-                logger.error(f"OpenAI 代理配置错误: {e}，如使用 SOCKS 代理请运行: pip install httpx[socks]")
-            else:
-                logger.error(f"OpenAI 兼容 API 初始化失败: {e}")
+        # 2b. Gemini
+        if self._gemini_keys:
+            chain.append({
+                "model": "gemini/gemini-2.5-flash-preview-04-17",
+                "api_key": self._next_key(self._gemini_keys, "_gemini_key_idx"),
+                "api_base": None,
+            })
 
-    def _init_model(self) -> None:
-        """
-        初始化 Gemini 模型
+        # 2c. Anthropic
+        if self._anthropic_keys:
+            chain.append({
+                "model": "claude-3-5-sonnet-20241022",
+                "api_key": self._next_key(self._anthropic_keys, "_anthropic_key_idx"),
+                "api_base": None,
+            })
 
-        配置：
-        - 使用 gemini-3-flash-preview 或 gemini-2.5-flash 模型
-        - 不启用 Google Search（使用外部 Tavily/SerpAPI 搜索）
-        """
-        try:
-            import google.generativeai as genai
+        # 2d. OpenAI
+        if self._openai_keys:
+            chain.append({
+                "model": "gpt-4o-mini",
+                "api_key": self._next_key(self._openai_keys, "_openai_key_idx"),
+                "api_base": None,
+            })
 
-            # 配置 API Key
-            genai.configure(api_key=self._api_key)
+        # 2e. DeepSeek
+        if self._deepseek_keys:
+            chain.append({
+                "model": "deepseek/deepseek-chat",
+                "api_key": self._next_key(self._deepseek_keys, "_deepseek_key_idx"),
+                "api_base": None,
+            })
 
-            # 从配置获取模型名称
-            config = get_config()
-            model_name = config.gemini_model
-            fallback_model = config.gemini_model_fallback
+        return chain
 
-            # 不再使用 Google Search Grounding（已知有兼容性问题）
-            # 改为使用外部搜索服务（Tavily/SerpAPI）预先获取新闻
+    def _entry_for_model(self, model: str) -> Optional[Dict[str, Any]]:
+        """Return a {model, api_key, api_base} dict for an explicit model string."""
+        m = model.lower()
+        if "gemini" in m:
+            key = self._next_key(self._gemini_keys, "_gemini_key_idx")
+            return {"model": model, "api_key": key, "api_base": None} if key else None
+        if "claude" in m or "anthropic" in m:
+            key = self._next_key(self._anthropic_keys, "_anthropic_key_idx")
+            return {"model": model, "api_key": key, "api_base": None} if key else None
+        if "deepseek" in m:
+            key = self._next_key(self._deepseek_keys, "_deepseek_key_idx")
+            return {"model": model, "api_key": key, "api_base": None} if key else None
+        # Default: openai-compatible
+        key = self._next_key(self._openai_keys, "_openai_key_idx")
+        return {"model": model, "api_key": key, "api_base": None} if key else None
 
-            # 尝试初始化主模型
-            try:
-                self._model = genai.GenerativeModel(
-                    model_name=model_name,
-                    system_instruction=self.SYSTEM_PROMPT,
-                )
-                self._current_model_name = model_name
-                self._using_fallback = False
-                logger.info(f"Gemini 模型初始化成功 (模型: {model_name})")
-            except Exception as model_error:
-                # 尝试备选模型
-                logger.warning(f"主模型 {model_name} 初始化失败: {model_error}，尝试备选模型 {fallback_model}")
-                self._model = genai.GenerativeModel(
-                    model_name=fallback_model,
-                    system_instruction=self.SYSTEM_PROMPT,
-                )
-                self._current_model_name = fallback_model
-                self._using_fallback = True
-                logger.info(f"Gemini 备选模型初始化成功 (模型: {fallback_model})")
-
-        except Exception as e:
-            logger.error(f"Gemini 模型初始化失败: {e}")
-            self._model = None
-
-    def _switch_to_fallback_model(self) -> bool:
-        """
-        切换到备选模型
-
-        Returns:
-            是否成功切换
-        """
-        try:
-            import google.generativeai as genai
-            config = get_config()
-            fallback_model = config.gemini_model_fallback
-
-            logger.warning(f"[LLM] 切换到备选模型: {fallback_model}")
-            self._model = genai.GenerativeModel(
-                model_name=fallback_model,
-                system_instruction=self.SYSTEM_PROMPT,
-            )
-            self._current_model_name = fallback_model
-            self._using_fallback = True
-            logger.info(f"[LLM] 备选模型 {fallback_model} 初始化成功")
-            return True
-        except Exception as e:
-            logger.error(f"[LLM] 切换备选模型失败: {e}")
-            return False
+    # ------------------------------------------------------------------ #
+    #  Public API                                                          #
+    # ------------------------------------------------------------------ #
 
     def is_available(self) -> bool:
         """检查分析器是否可用"""
-        return self._model is not None or self._openai_client is not None
+        return bool(self._model_chain)
+
+    def generate_text(self, prompt: str, max_tokens: int = 8192, temperature: float = 0.7) -> Optional[str]:
+        """
+        Primary public API: call LLM and return text.
+
+        Tries each model in the chain in order; handles RateLimitError and
+        ContextWindowExceededError with backoff.
+
+        Args:
+            prompt: User prompt (system prompt is prepended internally)
+            max_tokens: Max output tokens
+            temperature: Sampling temperature
+
+        Returns:
+            Response text, or None if all models fail
+        """
+        import litellm
+        from litellm.exceptions import RateLimitError, ContextWindowExceededError
+
+        chain = self._build_model_chain()  # rebuild each call to rotate keys
+        if not chain:
+            logger.warning("[LiteLLM] 无可用模型")
+            return None
+
+        messages = [
+            {"role": "system", "content": self.SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ]
+
+        last_error: Optional[Exception] = None
+        for entry in chain:
+            model = entry["model"]
+            api_key = entry.get("api_key")
+            api_base = entry.get("api_base")
+
+            max_retries = 3
+            base_delay = 5.0
+
+            for attempt in range(max_retries):
+                try:
+                    if attempt > 0:
+                        delay = min(base_delay * (2 ** (attempt - 1)), 60)
+                        logger.info(f"[LiteLLM:{model}] 第 {attempt + 1} 次重试，等待 {delay:.1f}s ...")
+                        time.sleep(delay)
+
+                    kwargs: Dict[str, Any] = {
+                        "model": model,
+                        "messages": messages,
+                        "max_tokens": max_tokens,
+                        "temperature": temperature,
+                    }
+                    if api_key:
+                        kwargs["api_key"] = api_key
+                    if api_base:
+                        kwargs["api_base"] = api_base
+
+                    response = litellm.completion(**kwargs)
+                    text = response.choices[0].message.content
+                    if text:
+                        logger.info(f"[LiteLLM] 模型 {model} 调用成功，返回 {len(text)} 字符")
+                        return text
+                    else:
+                        raise ValueError("LLM 返回空响应")
+
+                except RateLimitError as e:
+                    last_error = e
+                    logger.warning(f"[LiteLLM:{model}] 限流 (attempt {attempt+1}/{max_retries}): {str(e)[:100]}")
+                    if attempt < max_retries - 1:
+                        continue
+                    # exhausted retries on this model → try next
+                    break
+
+                except ContextWindowExceededError as e:
+                    last_error = e
+                    logger.warning(f"[LiteLLM:{model}] 上下文超限，尝试下一个模型: {str(e)[:100]}")
+                    break  # no point retrying same model
+
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"[LiteLLM:{model}] 调用失败 (attempt {attempt+1}/{max_retries}): {str(e)[:100]}")
+                    if attempt < max_retries - 1:
+                        continue
+                    break
+
+        logger.error(f"[LiteLLM] 所有模型均调用失败，最后错误: {last_error}")
+        return None
+
+    # ------------------------------------------------------------------ #
+    #  Backward-compat shims (used by tests / old callers)                #
+    # ------------------------------------------------------------------ #
 
     def _call_openai_api(self, prompt: str, generation_config: dict) -> str:
-        """
-        调用 OpenAI 兼容 API
+        """Backward-compat shim: delegates to generate_text."""
+        max_tokens = generation_config.get("max_output_tokens", generation_config.get("max_tokens", 8192))
+        temperature = generation_config.get("temperature", 0.7)
+        result = self.generate_text(prompt, max_tokens=max_tokens, temperature=temperature)
+        if result:
+            return result
+        raise Exception("generate_text 调用失败（_call_openai_api shim）")
 
-        Args:
-            prompt: 提示词
-            generation_config: 生成配置
-
-        Returns:
-            响应文本
-        """
-        config = get_config()
-        max_retries = config.gemini_max_retries
-        base_delay = config.gemini_retry_delay
-
-        def _build_base_request_kwargs() -> dict:
-            kwargs = {
-                "model": self._current_model_name,
-                "messages": [
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": generation_config.get('temperature', config.openai_temperature),
-            }
-            return kwargs
-
-        def _is_unsupported_param_error(error_message: str, param_name: str) -> bool:
-            lower_msg = error_message.lower()
-            return ('400' in lower_msg or "unsupported parameter" in lower_msg or "unsupported param" in lower_msg) and param_name in lower_msg
-
-        if not hasattr(self, "_token_param_mode"):
-            self._token_param_mode = {}
-
-        max_output_tokens = generation_config.get('max_output_tokens', 8192)
-        model_name = self._current_model_name
-        mode = self._token_param_mode.get(model_name, "max_tokens")
-
-        def _kwargs_with_mode(mode_value):
-            kwargs = _build_base_request_kwargs()
-            if mode_value is not None:
-                kwargs[mode_value] = max_output_tokens
-            return kwargs
-
-        for attempt in range(max_retries):
-            try:
-                if attempt > 0:
-                    delay = base_delay * (2 ** (attempt - 1))
-                    delay = min(delay, 60)
-                    logger.info(f"[OpenAI] 第 {attempt + 1} 次重试，等待 {delay:.1f} 秒...")
-                    time.sleep(delay)
-
-                try:
-                    response = self._openai_client.chat.completions.create(**_kwargs_with_mode(mode))
-                except Exception as e:
-                    error_str = str(e)
-                    if mode == "max_tokens" and _is_unsupported_param_error(error_str, "max_tokens"):
-                        mode = "max_completion_tokens"
-                        self._token_param_mode[model_name] = mode
-                        response = self._openai_client.chat.completions.create(**_kwargs_with_mode(mode))
-                    elif mode == "max_completion_tokens" and _is_unsupported_param_error(error_str, "max_completion_tokens"):
-                        mode = None
-                        self._token_param_mode[model_name] = mode
-                        response = self._openai_client.chat.completions.create(**_kwargs_with_mode(mode))
-                    else:
-                        raise
-
-                if response and response.choices and response.choices[0].message.content:
-                    return response.choices[0].message.content
-                else:
-                    raise ValueError("OpenAI API 返回空响应")
-                    
-            except Exception as e:
-                error_str = str(e)
-                is_rate_limit = '429' in error_str or 'rate' in error_str.lower() or 'quota' in error_str.lower()
-                
-                if is_rate_limit:
-                    logger.warning(f"[OpenAI] API 限流，第 {attempt + 1}/{max_retries} 次尝试: {error_str[:100]}")
-                else:
-                    logger.warning(f"[OpenAI] API 调用失败，第 {attempt + 1}/{max_retries} 次尝试: {error_str[:100]}")
-                
-                if attempt == max_retries - 1:
-                    raise
-        
-        raise Exception("OpenAI API 调用失败，已达最大重试次数")
-    
     def _call_api_with_retry(self, prompt: str, generation_config: dict) -> str:
-        """
-        调用 AI API，带有重试和模型切换机制
-        
-        优先级：Gemini > Gemini 备选模型 > OpenAI 兼容 API
-        
-        处理 429 限流错误：
-        1. 先指数退避重试
-        2. 多次失败后切换到备选模型
-        3. Gemini 完全失败后尝试 OpenAI
-        
-        Args:
-            prompt: 提示词
-            generation_config: 生成配置
-            
-        Returns:
-            响应文本
-        """
-        # 如果已经在使用 OpenAI 模式，直接调用 OpenAI
-        if self._use_openai:
-            return self._call_openai_api(prompt, generation_config)
-        
-        config = get_config()
-        max_retries = config.gemini_max_retries
-        base_delay = config.gemini_retry_delay
-        
-        last_error = None
-        tried_fallback = getattr(self, '_using_fallback', False)
-        
-        for attempt in range(max_retries):
-            try:
-                # 请求前增加延时（防止请求过快触发限流）
-                if attempt > 0:
-                    delay = base_delay * (2 ** (attempt - 1))  # 指数退避: 5, 10, 20, 40...
-                    delay = min(delay, 60)  # 最大60秒
-                    logger.info(f"[Gemini] 第 {attempt + 1} 次重试，等待 {delay:.1f} 秒...")
-                    time.sleep(delay)
-                
-                response = self._model.generate_content(
-                    prompt,
-                    generation_config=generation_config,
-                    request_options={"timeout": 120}
-                )
-                
-                if response and response.text:
-                    return response.text
-                else:
-                    raise ValueError("Gemini 返回空响应")
-                    
-            except Exception as e:
-                last_error = e
-                error_str = str(e)
-                
-                # 检查是否是 429 限流错误
-                is_rate_limit = '429' in error_str or 'quota' in error_str.lower() or 'rate' in error_str.lower()
-                
-                if is_rate_limit:
-                    logger.warning(f"[Gemini] API 限流 (429)，第 {attempt + 1}/{max_retries} 次尝试: {error_str[:100]}")
-                    
-                    # 如果已经重试了一半次数且还没切换过备选模型，尝试切换
-                    if attempt >= max_retries // 2 and not tried_fallback:
-                        if self._switch_to_fallback_model():
-                            tried_fallback = True
-                            logger.info("[Gemini] 已切换到备选模型，继续重试")
-                        else:
-                            logger.warning("[Gemini] 切换备选模型失败，继续使用当前模型重试")
-                else:
-                    # 非限流错误，记录并继续重试
-                    logger.warning(f"[Gemini] API 调用失败，第 {attempt + 1}/{max_retries} 次尝试: {error_str[:100]}")
-        
-        # Gemini 所有重试都失败，尝试 OpenAI 兼容 API
-        if self._openai_client:
-            logger.warning("[Gemini] 所有重试失败，切换到 OpenAI 兼容 API")
-            try:
-                return self._call_openai_api(prompt, generation_config)
-            except Exception as openai_error:
-                logger.error(f"[OpenAI] 备选 API 也失败: {openai_error}")
-                raise last_error or openai_error
-        elif config.openai_api_key and config.openai_base_url:
-            # 尝试懒加载初始化 OpenAI
-            logger.warning("[Gemini] 所有重试失败，尝试初始化 OpenAI 兼容 API")
-            self._init_openai_fallback()
-            if self._openai_client:
-                try:
-                    return self._call_openai_api(prompt, generation_config)
-                except Exception as openai_error:
-                    logger.error(f"[OpenAI] 备选 API 也失败: {openai_error}")
-                    raise last_error or openai_error
-        
-        # 所有方式都失败
-        raise last_error or Exception("所有 AI API 调用失败，已达最大重试次数")
+        """Backward-compat shim: delegates to generate_text."""
+        return self._call_openai_api(prompt, generation_config)
     
     def analyze(
         self, 

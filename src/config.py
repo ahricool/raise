@@ -13,7 +13,7 @@ Raise - 配置管理模块
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from dotenv import load_dotenv, dotenv_values
 from loguru import logger
@@ -69,11 +69,52 @@ class Config:
     openai_model: str = "gpt-4o-mini"  # OpenAI 兼容模型名称
     openai_temperature: float = 0.7  # OpenAI 温度参数（0.0-2.0，默认0.7）
     
+    # === LiteLLM 统一层 ===
+    litellm_model: str = ""  # 主模型，如 "gemini/gemini-3-flash-preview"
+    litellm_fallback_models: List[str] = field(default_factory=list)
+    litellm_config_path: Optional[str] = None  # litellm_config.yaml 路径
+    llm_temperature: float = 0.7
+    llm_channels: List[Dict[str, Any]] = field(default_factory=list)
+    llm_model_list: List[Dict[str, Any]] = field(default_factory=list)
+    llm_models_source: str = "legacy_env"  # "legacy_env" | "channels" | "yaml"
+
+    # Gemini 多Key支持
+    gemini_api_keys: List[str] = field(default_factory=list)
+
+    # Anthropic
+    anthropic_api_keys: List[str] = field(default_factory=list)
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-3-5-sonnet-20241022"
+    anthropic_temperature: float = 0.7
+    anthropic_max_tokens: int = 8192
+
+    # OpenAI 多Key支持
+    openai_api_keys: List[str] = field(default_factory=list)
+
+    # DeepSeek
+    deepseek_api_keys: List[str] = field(default_factory=list)
+
+    # AIHUBMIX 中转Key
+    aihubmix_key: Optional[str] = None
+
+    # Agent 独立模型（Agent 分析与主分析解耦）
+    agent_litellm_model: str = ""
+
+    # Vision 模型
+    vision_model: str = ""
+    vision_provider_priority: str = "gemini,anthropic,openai"
+
     # === 搜索引擎配置（支持多 Key 负载均衡）===
     bocha_api_keys: List[str] = field(default_factory=list)  # Bocha API Keys
     tavily_api_keys: List[str] = field(default_factory=list)  # Tavily API Keys
     brave_api_keys: List[str] = field(default_factory=list)  # Brave Search API Keys
     serpapi_keys: List[str] = field(default_factory=list)  # SerpAPI Keys
+
+    # 新增搜索引擎
+    anspire_api_keys: List[str] = field(default_factory=list)  # 专为A股中文优化
+    minimax_api_keys: List[str] = field(default_factory=list)  # MiniMax结构化搜索
+    searxng_base_urls: List[str] = field(default_factory=list)  # 自托管SearXNG
+    searxng_public_instances_enabled: bool = True  # 自动发现公共实例
 
     # 自选股列表（从环境变量 STOCK_LIST 加载）
     stock_list: List[str] = field(default_factory=list)
@@ -116,6 +157,23 @@ class Config:
     database_url: Optional[str] = None
     database_path: str = "./data/raise.db"
 
+    # === 数据源扩展 ===
+    tickflow_api_key: Optional[str] = None  # TickFlow A股行情增强
+    longbridge_app_key: Optional[str] = None  # 长桥 美股/港股
+    longbridge_app_secret: Optional[str] = None
+    longbridge_access_token: Optional[str] = None
+
+    # 飞书云文档（用于导出报告）
+    feishu_app_id: Optional[str] = None
+    feishu_app_secret: Optional[str] = None
+    feishu_folder_token: Optional[str] = None
+
+    # === SQLite 稳定性配置 ===
+    sqlite_wal_enabled: bool = True
+    sqlite_busy_timeout_ms: int = 5000
+    sqlite_write_retry_max: int = 3
+    sqlite_write_retry_base_delay: float = 0.1
+
     # 是否保存分析上下文快照（用于历史回溯）
     save_context_snapshot: bool = True
 
@@ -141,11 +199,24 @@ class Config:
     schedule_time: str = "18:00"              # 每日推送时间（HH:MM 格式）
     market_review_enabled: bool = True        # 是否启用大盘复盘
 
+    # 语言和地区
+    report_language: str = "zh"  # "zh" | "en"
+    market_review_region: str = "cn"  # "cn" | "us"
+    schedule_run_immediately: bool = True
+    trading_day_check_enabled: bool = True
+
     # === 实时行情增强数据配置 ===
     # 实时行情开关（关闭后使用历史收盘价进行分析）
     enable_realtime_quote: bool = True
     # 筹码分布开关（该接口不稳定，云端部署建议关闭）
     enable_chip_distribution: bool = True
+
+    # === 社交舆情配置 ===
+    social_sentiment_api_key: Optional[str] = None
+    social_sentiment_api_url: str = "https://api.adanos.org"
+    news_max_age_days: int = 3
+    news_strategy_profile: str = "short"
+
     # 实时行情数据源优先级（逗号分隔）
     # 推荐顺序：tencent > akshare_sina > efinance > akshare_em > tushare
     # - tencent: 腾讯财经，有量比/换手率/市盈率等，单股查询稳定（推荐）
@@ -163,6 +234,26 @@ class Config:
     multi_agent_invest_debate_rounds: int = 1     # 投研辩论轮次（1-3，越多质量越高但成本越高）
     multi_agent_risk_debate_rounds: int = 1       # 风控辩论轮次（1-3）
     multi_agent_llm_temperature: float = 0.3      # 智能体 LLM 温度（低于主分析器以提升一致性）
+
+    # === 原生 Agent 系统配置（upstream src/agent/）===
+    native_agent_enabled: bool = False  # 启用上游原生agent（区别于trading_agents辩论框架）
+    agent_mode: bool = False
+    agent_max_steps: int = 10
+    agent_skills: List[str] = field(default_factory=list)
+    agent_arch: str = "single"  # "single" | "multi"
+    agent_orchestrator_mode: str = "standard"  # "quick"|"standard"|"full"|"specialist"
+    agent_orchestrator_timeout_s: int = 600
+    agent_risk_override: bool = True
+    agent_memory_enabled: bool = False
+    agent_skill_autoweight: bool = True
+
+    # === 基本面分析管道 ===
+    enable_fundamental_pipeline: bool = True
+    fundamental_stage_timeout_seconds: float = 1.5
+    fundamental_fetch_timeout_seconds: float = 0.8
+    fundamental_retry_max: int = 1
+    fundamental_cache_ttl_seconds: int = 120
+    fundamental_cache_max_entries: int = 256
 
     # Discord 机器人状态
     discord_bot_status: str = "A股智能分析 | /help"
@@ -306,10 +397,37 @@ class Config:
             openai_base_url=os.getenv('OPENAI_BASE_URL'),
             openai_model=os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
             openai_temperature=float(os.getenv('OPENAI_TEMPERATURE', '0.7')),
+            # LiteLLM
+            litellm_model=os.getenv('LITELLM_MODEL', ''),
+            litellm_fallback_models=[m.strip() for m in os.getenv('LITELLM_FALLBACK_MODELS', '').split(',') if m.strip()],
+            litellm_config_path=os.getenv('LITELLM_CONFIG', os.getenv('LITELLM_CONFIG_YAML')),
+            llm_temperature=float(os.getenv('LLM_TEMPERATURE', '0.7')),
+            # Multi-key Gemini
+            gemini_api_keys=[k.strip() for k in os.getenv('GEMINI_API_KEYS', '').split(',') if k.strip()],
+            # Anthropic
+            anthropic_api_keys=[k.strip() for k in os.getenv('ANTHROPIC_API_KEYS', os.getenv('ANTHROPIC_API_KEY', '')).split(',') if k.strip()],
+            anthropic_api_key=os.getenv('ANTHROPIC_API_KEY'),
+            anthropic_model=os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022'),
+            anthropic_temperature=float(os.getenv('ANTHROPIC_TEMPERATURE', '0.7')),
+            anthropic_max_tokens=int(os.getenv('ANTHROPIC_MAX_TOKENS', '8192')),
+            # OpenAI multi-key
+            openai_api_keys=[k.strip() for k in os.getenv('OPENAI_API_KEYS', '').split(',') if k.strip()],
+            # DeepSeek
+            deepseek_api_keys=[k.strip() for k in os.getenv('DEEPSEEK_API_KEYS', os.getenv('DEEPSEEK_API_KEY', '')).split(',') if k.strip()],
+            # AIHUBMIX
+            aihubmix_key=os.getenv('AIHUBMIX_KEY'),
+            agent_litellm_model=os.getenv('AGENT_LITELLM_MODEL', ''),
+            vision_model=os.getenv('VISION_MODEL', ''),
+            vision_provider_priority=os.getenv('VISION_PROVIDER_PRIORITY', 'gemini,anthropic,openai'),
             bocha_api_keys=bocha_api_keys,
             tavily_api_keys=tavily_api_keys,
             brave_api_keys=brave_api_keys,
             serpapi_keys=serpapi_keys,
+            # New search
+            anspire_api_keys=[k.strip() for k in os.getenv('ANSPIRE_API_KEYS', '').split(',') if k.strip()],
+            minimax_api_keys=[k.strip() for k in os.getenv('MINIMAX_API_KEYS', '').split(',') if k.strip()],
+            searxng_base_urls=[u.strip() for u in os.getenv('SEARXNG_BASE_URLS', '').split(',') if u.strip()],
+            searxng_public_instances_enabled=os.getenv('SEARXNG_PUBLIC_INSTANCES_ENABLED', 'true').lower() == 'true',
             telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN'),
             telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID'),
             telegram_message_thread_id=os.getenv('TELEGRAM_MESSAGE_THREAD_ID'),
@@ -329,6 +447,19 @@ class Config:
             analysis_delay=float(os.getenv('ANALYSIS_DELAY', '0')),
             database_url=os.getenv('DATABASE_URL'),
             database_path=os.getenv('DATABASE_PATH', './data/raise.db'),
+            # Data providers
+            tickflow_api_key=os.getenv('TICKFLOW_API_KEY'),
+            longbridge_app_key=os.getenv('LONGBRIDGE_APP_KEY'),
+            longbridge_app_secret=os.getenv('LONGBRIDGE_APP_SECRET'),
+            longbridge_access_token=os.getenv('LONGBRIDGE_ACCESS_TOKEN'),
+            feishu_app_id=os.getenv('FEISHU_APP_ID'),
+            feishu_app_secret=os.getenv('FEISHU_APP_SECRET'),
+            feishu_folder_token=os.getenv('FEISHU_FOLDER_TOKEN'),
+            # SQLite stability
+            sqlite_wal_enabled=os.getenv('SQLITE_WAL_ENABLED', 'true').lower() == 'true',
+            sqlite_busy_timeout_ms=int(os.getenv('SQLITE_BUSY_TIMEOUT_MS', '5000')),
+            sqlite_write_retry_max=int(os.getenv('SQLITE_WRITE_RETRY_MAX', '3')),
+            sqlite_write_retry_base_delay=float(os.getenv('SQLITE_WRITE_RETRY_BASE_DELAY', '0.1')),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
             backtest_enabled=os.getenv('BACKTEST_ENABLED', 'true').lower() == 'true',
             backtest_eval_window_days=int(os.getenv('BACKTEST_EVAL_WINDOW_DAYS', '10')),
@@ -344,6 +475,11 @@ class Config:
             schedule_enabled=os.getenv('SCHEDULE_ENABLED', 'false').lower() == 'true',
             schedule_time=os.getenv('SCHEDULE_TIME', '18:00'),
             market_review_enabled=os.getenv('MARKET_REVIEW_ENABLED', 'true').lower() == 'true',
+            # Language/region
+            report_language=os.getenv('REPORT_LANGUAGE', 'zh').lower() or 'zh',
+            market_review_region=os.getenv('MARKET_REVIEW_REGION', 'cn').lower(),
+            schedule_run_immediately=os.getenv('SCHEDULE_RUN_IMMEDIATELY', 'true').lower() == 'true',
+            trading_day_check_enabled=os.getenv('TRADING_DAY_CHECK_ENABLED', 'true').lower() == 'true',
             webui_enabled=os.getenv('WEBUI_ENABLED', 'false').lower() == 'true',
             webui_host=os.getenv('WEBUI_HOST', '127.0.0.1'),
             webui_port=int(os.getenv('WEBUI_PORT', '8000')),
@@ -360,6 +496,11 @@ class Config:
             # 实时行情增强数据配置
             enable_realtime_quote=os.getenv('ENABLE_REALTIME_QUOTE', 'true').lower() == 'true',
             enable_chip_distribution=os.getenv('ENABLE_CHIP_DISTRIBUTION', 'true').lower() == 'true',
+            # Social sentiment
+            social_sentiment_api_key=os.getenv('SOCIAL_SENTIMENT_API_KEY'),
+            social_sentiment_api_url=os.getenv('SOCIAL_SENTIMENT_API_URL', 'https://api.adanos.org'),
+            news_max_age_days=int(os.getenv('NEWS_MAX_AGE_DAYS', '3')),
+            news_strategy_profile=os.getenv('NEWS_STRATEGY_PROFILE', 'short'),
             # 实时行情数据源优先级：
             # - tencent: 腾讯财经，有量比/换手率/PE/PB等，单股查询稳定（推荐）
             # - akshare_sina: 新浪财经，基本行情稳定，但无量比
@@ -373,6 +514,24 @@ class Config:
             multi_agent_invest_debate_rounds=int(os.getenv('MULTI_AGENT_INVEST_DEBATE_ROUNDS', '1')),
             multi_agent_risk_debate_rounds=int(os.getenv('MULTI_AGENT_RISK_DEBATE_ROUNDS', '1')),
             multi_agent_llm_temperature=float(os.getenv('MULTI_AGENT_LLM_TEMPERATURE', '0.3')),
+            # Native agent system
+            native_agent_enabled=os.getenv('NATIVE_AGENT_ENABLED', 'false').lower() == 'true',
+            agent_mode=os.getenv('AGENT_MODE', 'false').lower() == 'true',
+            agent_max_steps=int(os.getenv('AGENT_MAX_STEPS', '10')),
+            agent_skills=[s.strip() for s in os.getenv('AGENT_SKILLS', '').split(',') if s.strip()],
+            agent_arch=os.getenv('AGENT_ARCH', 'single'),
+            agent_orchestrator_mode=os.getenv('AGENT_ORCHESTRATOR_MODE', 'standard'),
+            agent_orchestrator_timeout_s=int(os.getenv('AGENT_ORCHESTRATOR_TIMEOUT_S', '600')),
+            agent_risk_override=os.getenv('AGENT_RISK_OVERRIDE', 'true').lower() == 'true',
+            agent_memory_enabled=os.getenv('AGENT_MEMORY_ENABLED', 'false').lower() == 'true',
+            agent_skill_autoweight=os.getenv('AGENT_SKILL_AUTOWEIGHT', 'true').lower() == 'true',
+            # Fundamental pipeline
+            enable_fundamental_pipeline=os.getenv('ENABLE_FUNDAMENTAL_PIPELINE', 'true').lower() == 'true',
+            fundamental_stage_timeout_seconds=float(os.getenv('FUNDAMENTAL_STAGE_TIMEOUT_SECONDS', '1.5')),
+            fundamental_fetch_timeout_seconds=float(os.getenv('FUNDAMENTAL_FETCH_TIMEOUT_SECONDS', '0.8')),
+            fundamental_retry_max=int(os.getenv('FUNDAMENTAL_RETRY_MAX', '1')),
+            fundamental_cache_ttl_seconds=int(os.getenv('FUNDAMENTAL_CACHE_TTL_SECONDS', '120')),
+            fundamental_cache_max_entries=int(os.getenv('FUNDAMENTAL_CACHE_MAX_ENTRIES', '256')),
         )
     
     @classmethod
@@ -461,8 +620,8 @@ class Config:
         elif not self.gemini_api_key:
             warnings.append("提示：未配置 Gemini API Key，将使用 OpenAI 兼容 API")
         
-        if not self.bocha_api_keys and not self.tavily_api_keys and not self.brave_api_keys and not self.serpapi_keys:
-            warnings.append("提示：未配置搜索引擎 API Key (Bocha/Tavily/Brave/SerpAPI)，新闻搜索功能将不可用")
+        if not self.bocha_api_keys and not self.tavily_api_keys and not self.brave_api_keys and not self.serpapi_keys and not self.anspire_api_keys and not self.minimax_api_keys and not self.searxng_base_urls:
+            warnings.append("提示：未配置搜索引擎 API Key，新闻搜索功能将不可用")
         
         # 检查通知配置
         has_notification = (
@@ -497,6 +656,95 @@ class Config:
 def get_config() -> Config:
     """获取全局配置实例的快捷方式"""
     return Config.get_instance()
+
+
+# === Agent helper functions (used by src/agent/ pipeline system) ===
+
+# Default maximum steps for the agent loop
+AGENT_MAX_STEPS_DEFAULT: int = 10
+
+
+def get_effective_agent_primary_model(config: Optional['Config'] = None) -> str:
+    """Return the primary model for the agent, preferring agent_litellm_model then litellm_model."""
+    if config is None:
+        config = get_config()
+    model = (getattr(config, 'agent_litellm_model', '') or '').strip()
+    if not model:
+        model = (getattr(config, 'litellm_model', '') or '').strip()
+    return model
+
+
+def get_effective_agent_models_to_try(config: Optional['Config'] = None) -> List[str]:
+    """Return ordered list of models to try for agent calls (primary + fallbacks)."""
+    if config is None:
+        config = get_config()
+    primary = get_effective_agent_primary_model(config)
+    fallbacks = list(getattr(config, 'litellm_fallback_models', []) or [])
+    models = []
+    if primary:
+        models.append(primary)
+    for m in fallbacks:
+        m = (m or '').strip()
+        if m and m not in models:
+            models.append(m)
+    return models or ['gemini/gemini-2.5-flash']
+
+
+def get_configured_llm_models(model_list: List[Dict[str, Any]]) -> List[str]:
+    """Return unique model names from a litellm model_list config."""
+    seen = []
+    for entry in (model_list or []):
+        lp = entry.get('litellm_params', {})
+        m = lp.get('model', '') if isinstance(lp, dict) else ''
+        if m and m not in seen:
+            seen.append(m)
+    return seen
+
+
+def get_api_keys_for_model(model: str, config: Optional['Config'] = None) -> List[str]:
+    """Return API key(s) for the given model based on its provider prefix."""
+    if config is None:
+        config = get_config()
+    if not model:
+        return []
+    prefix = model.split('/')[0].lower() if '/' in model else ''
+    if prefix in ('gemini', 'google') or 'gemini' in model.lower():
+        keys = list(getattr(config, 'gemini_api_keys', []) or [])
+        if not keys:
+            k = getattr(config, 'gemini_api_key', '') or ''
+            if k:
+                keys = [k]
+        return keys
+    if prefix == 'anthropic' or 'claude' in model.lower():
+        keys = list(getattr(config, 'anthropic_api_keys', []) or [])
+        if not keys:
+            k = getattr(config, 'anthropic_api_key', '') or ''
+            if k:
+                keys = [k]
+        return keys
+    if prefix == 'openai' or not prefix:
+        keys = list(getattr(config, 'openai_api_keys', []) or [])
+        if not keys:
+            k = getattr(config, 'openai_api_key', '') or ''
+            if k:
+                keys = [k]
+        return keys
+    if prefix == 'deepseek':
+        return list(getattr(config, 'deepseek_api_keys', []) or [])
+    return []
+
+
+def extra_litellm_params(model: str, config: Optional['Config'] = None) -> Dict[str, Any]:
+    """Return extra litellm params (e.g. api_base) for a given model."""
+    if config is None:
+        config = get_config()
+    params: Dict[str, Any] = {}
+    prefix = model.split('/')[0].lower() if '/' in model else ''
+    if (prefix == 'openai' or not prefix):
+        base = getattr(config, 'openai_base_url', '') or ''
+        if base:
+            params['api_base'] = base
+    return params
 
 
 if __name__ == "__main__":

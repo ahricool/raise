@@ -12,6 +12,7 @@ A股自选股智能分析系统 - 核心分析流水线
 """
 
 from loguru import logger
+import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -73,13 +74,21 @@ class StockAnalysisPipeline:
         self.analyzer = GeminiAnalyzer()
         self.notifier = NotificationService(source_message=source_message)
         
-        # 初始化搜索服务
-        self.search_service = SearchService(
-            bocha_keys=self.config.bocha_api_keys,
-            tavily_keys=self.config.tavily_api_keys,
-            brave_keys=self.config.brave_api_keys,
-            serpapi_keys=self.config.serpapi_keys,
-        )
+        # 初始化搜索服务（可选，失败不阻断主流程）
+        try:
+            self.search_service = SearchService(
+                bocha_keys=self.config.bocha_api_keys,
+                tavily_keys=self.config.tavily_api_keys,
+                brave_keys=self.config.brave_api_keys,
+                serpapi_keys=self.config.serpapi_keys,
+                anspire_keys=getattr(self.config, 'anspire_api_keys', []),
+                minimax_keys=getattr(self.config, 'minimax_api_keys', []),
+                searxng_base_urls=getattr(self.config, 'searxng_base_urls', []),
+                searxng_public_instances_enabled=getattr(self.config, 'searxng_public_instances_enabled', True),
+            )
+        except Exception as _e:
+            logger.warning(f"搜索服务初始化失败，以无搜索模式运行: {_e}")
+            self.search_service = None
         
         logger.info(f"调度器初始化完成，最大并发数: {self.max_workers}")
         logger.info("已启用趋势分析器 (MA5>MA10>MA20 多头判断)")
@@ -92,7 +101,7 @@ class StockAnalysisPipeline:
             logger.info("筹码分布分析已启用")
         else:
             logger.info("筹码分布分析已禁用")
-        if self.search_service.is_available:
+        if self.search_service and self.search_service.is_available:
             logger.info("搜索服务已启用 (Tavily/SerpAPI)")
         else:
             logger.warning("搜索服务未启用（未配置 API Key）")
@@ -222,7 +231,7 @@ class StockAnalysisPipeline:
             # Step 4: 多维度情报搜索（最新消息+风险排查+业绩预期）
             news_context = None
             per_stock_query_id = uuid.uuid4().hex  # 提前生成，确保新闻与历史记录 ID 一致
-            if self.search_service.is_available:
+            if self.search_service and self.search_service.is_available:
                 logger.info(f"[{code}] 开始多维度情报搜索...")
                 
                 # 使用多维度搜索（最多5次搜索）
@@ -284,8 +293,42 @@ class StockAnalysisPipeline:
                 stock_name  # 传入股票名称
             )
             
-            # Step 7: 调用 AI 分析（单次 AI 或多智能体辩论模式）
-            if getattr(self.config, 'enable_multi_agent', False):
+            # Step 7: 调用 AI 分析（三种模式）
+            # 模式1: native_agent_enabled=True  → 使用 src/agent/ 原生 pipeline agent
+            # 模式2: enable_multi_agent=True     → 使用 trading_agents/ LangGraph 辩论框架
+            # 模式3: 默认                        → 标准单次 LLM 分析
+            if getattr(self.config, 'native_agent_enabled', False):
+                try:
+                    from src.agent.factory import create_agent
+                    agent = create_agent(self.config)
+                    agent_result = agent.run(
+                        task=f"分析股票 {code}",
+                        context={
+                            "stock_code": code,
+                            "stock_name": stock_name,
+                            "realtime_quote": enhanced_context.get("realtime"),
+                            "trend_result": enhanced_context.get("trend_analysis"),
+                            "chip_distribution": enhanced_context.get("chip"),
+                            "news_context": news_context,
+                        },
+                    )
+                    # Convert AgentResult to AnalysisResult for downstream compatibility
+                    if agent_result and agent_result.success:
+                        dashboard = agent_result.dashboard or {}
+                        result = self.analyzer.build_result_from_dashboard(
+                            dashboard, code, stock_name
+                        ) if hasattr(self.analyzer, 'build_result_from_dashboard') else \
+                            self.analyzer.analyze(enhanced_context, news_context=news_context)
+                    else:
+                        logger.warning(
+                            f"[{code}] 原生 agent 分析未成功 (error={getattr(agent_result, 'error', None)})"
+                            f"，降级到单次 AI"
+                        )
+                        result = self.analyzer.analyze(enhanced_context, news_context=news_context)
+                except Exception as e:
+                    logger.error(f"[{code}] 原生 agent 分析失败，降级到单次 AI: {e}")
+                    result = self.analyzer.analyze(enhanced_context, news_context=news_context)
+            elif getattr(self.config, 'enable_multi_agent', False):
                 try:
                     from trading_agents.orchestrator import MultiAgentOrchestrator
                     orchestrator = MultiAgentOrchestrator(

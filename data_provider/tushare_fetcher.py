@@ -55,6 +55,19 @@ def _is_etf_code(stock_code: str) -> bool:
     return code.startswith(_ETF_ALL_PREFIXES) and len(code) == 6
 
 
+def _is_hk_code(stock_code: str) -> bool:
+    """判断代码是否为港股 (e.g. HK00700, 00700.HK, 00700)"""
+    code = stock_code.strip().upper()
+    if code.endswith('.HK'):
+        return True
+    if code.startswith('HK') and len(code) >= 4 and code[2:].isdigit():
+        return True
+    # 5位纯数字视为港股代码
+    if re.match(r'^\d{5}$', code):
+        return True
+    return False
+
+
 def _is_us_code(stock_code: str) -> bool:
     """
     判断代码是否为美股
@@ -245,6 +258,20 @@ class TushareFetcher(BaseFetcher):
         self._call_count += 1
         logger.debug(f"Tushare 当前分钟调用次数: {self._call_count}/{self.rate_limit_per_minute}")
     
+    def _convert_hk_stock_code_for_tushare(self, stock_code: str) -> str:
+        """将港股代码转换为 Tushare 格式：5位数字.HK，如 '00700.HK'"""
+        raw = stock_code.strip().upper()
+        if raw.endswith('.HK'):
+            digits = re.sub(r'\D', '', raw[:-3])
+        elif raw.startswith('HK'):
+            digits = re.sub(r'\D', '', raw[2:])
+        else:
+            digits = re.sub(r'\D', '', raw)
+        if not digits:
+            raise DataFetchError(f"无法识别港股代码 {stock_code}")
+        code = digits[-5:].rjust(5, '0')
+        return f"{code}.HK"
+
     def _convert_stock_code(self, stock_code: str) -> str:
         """
         转换股票代码为 Tushare 格式
@@ -285,6 +312,27 @@ class TushareFetcher(BaseFetcher):
             return f"{code}.SZ"
     
     @retry(
+    def _fetch_hk_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """通过 Tushare hk_daily 接口获取港股历史数据（需对应积分权限）"""
+        if self._api is None:
+            raise DataFetchError("Tushare API 未初始化")
+        self._check_rate_limit()
+        ts_code = self._convert_hk_stock_code_for_tushare(stock_code)
+        ts_start = start_date.replace('-', '')
+        ts_end = end_date.replace('-', '')
+        logger.debug(f"调用 Tushare hk_daily({ts_code}, {ts_start}, {ts_end})")
+        try:
+            df = self._api.hk_daily(ts_code=ts_code, start_date=ts_start, end_date=ts_end)
+            if df is None or df.empty:
+                raise DataFetchError(f"港股 {stock_code} 无数据（请检查积分权限）")
+            # hk_daily 数据单位已是标准单位，无需换算
+            return df
+        except DataFetchError:
+            raise
+        except Exception as e:
+            raise DataFetchError(f"获取港股 {stock_code} 数据失败: {e}") from e
+
+    @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
@@ -311,21 +359,25 @@ class TushareFetcher(BaseFetcher):
         # US stocks not supported
         if _is_us_code(stock_code):
             raise DataFetchError(f"TushareFetcher 不支持美股 {stock_code}，请使用 AkshareFetcher 或 YfinanceFetcher")
-        
+
+        # HK stocks: route to hk_daily interface
+        if _is_hk_code(stock_code):
+            return self._fetch_hk_raw_data(stock_code, start_date, end_date)
+
         # Rate-limit check
         self._check_rate_limit()
-        
+
         # Convert code format
         ts_code = self._convert_stock_code(stock_code)
-        
+
         # Convert date format (Tushare requires YYYYMMDD)
         ts_start = start_date.replace('-', '')
         ts_end = end_date.replace('-', '')
-        
+
         is_etf = _is_etf_code(stock_code)
         api_name = "fund_daily" if is_etf else "daily"
         logger.debug(f"调用 Tushare {api_name}({ts_code}, {ts_start}, {ts_end})")
-        
+
         try:
             if is_etf:
                 # ETF uses fund_daily interface
@@ -341,7 +393,7 @@ class TushareFetcher(BaseFetcher):
                     start_date=ts_start,
                     end_date=ts_end,
                 )
-            
+
             return df
             
         except Exception as e:
@@ -379,13 +431,12 @@ class TushareFetcher(BaseFetcher):
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], format='%Y%m%d')
         
-        # 成交量单位转换（Tushare 的 vol 单位是手，需要转换为股）
-        if 'volume' in df.columns:
-            df['volume'] = df['volume'] * 100
-        
-        # 成交额单位转换（Tushare 的 amount 单位是千元，转换为元）
-        if 'amount' in df.columns:
-            df['amount'] = df['amount'] * 1000
+        is_hk = _is_hk_code(stock_code)
+        # A股/ETF 需要换算单位；港股 hk_daily 已是标准单位
+        if 'volume' in df.columns and not is_hk:
+            df['volume'] = df['volume'] * 100  # 手 -> 股
+        if 'amount' in df.columns and not is_hk:
+            df['amount'] = df['amount'] * 1000  # 千元 -> 元
         
         # 添加股票代码列
         df['code'] = stock_code
