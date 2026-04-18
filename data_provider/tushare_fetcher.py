@@ -311,7 +311,6 @@ class TushareFetcher(BaseFetcher):
             logger.warning(f"无法确定股票 {code} 的市场，默认使用深市")
             return f"{code}.SZ"
     
-    @retry(
     def _fetch_hk_raw_data(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """通过 Tushare hk_daily 接口获取港股历史数据（需对应积分权限）"""
         if self._api is None:
