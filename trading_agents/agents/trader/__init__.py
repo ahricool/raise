@@ -1,1 +1,4 @@
-# trading_agents/agents/trader
+# -*- coding: utf-8 -*-
+"""
+交易员 Agent：综合上游报告后给出可执行的交易侧结论。
+"""

@@ -1,1 +1,6 @@
-# trading_agents/agents/analysts
+# -*- coding: utf-8 -*-
+"""
+四位分析师 Agent：市场、基本面、新闻、情绪。
+
+输出供多空辩论与后续交易决策使用。
+"""

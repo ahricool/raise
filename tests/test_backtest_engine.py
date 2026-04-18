@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Unit tests for backtest engine."""
+"""
+回测引擎单元测试（BacktestEngine）
+
+用合成 K 线序列验证：窗口内方向判定、止盈止损先后、中性区间、
+模拟开平仓收益等规则是否与 `src/core/backtest_engine.py` 实现一致。
+"""
 
 import unittest
 from dataclasses import dataclass

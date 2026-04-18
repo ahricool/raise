@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===================================
-A股自选股智能分析系统 - 配置管理模块
+Raise - 配置管理模块
 ===================================
 
 职责：
@@ -49,14 +49,6 @@ class Config:
     - 类方法 get_instance() 实现单例访问
     """
     
-    # === 自选股配置 ===
-    stock_list: List[str] = field(default_factory=list)
-
-    # === 飞书云文档配置 ===
-    feishu_app_id: Optional[str] = None
-    feishu_app_secret: Optional[str] = None
-    feishu_folder_token: Optional[str] = None  # 目标文件夹 Token
-
     # === 数据源 API Token ===
     tushare_token: Optional[str] = None
     
@@ -82,15 +74,10 @@ class Config:
     tavily_api_keys: List[str] = field(default_factory=list)  # Tavily API Keys
     brave_api_keys: List[str] = field(default_factory=list)  # Brave Search API Keys
     serpapi_keys: List[str] = field(default_factory=list)  # SerpAPI Keys
-    
-    # === 通知配置（可同时配置多个，全部推送）===
-    
-    # 企业微信 Webhook
-    wechat_webhook_url: Optional[str] = None
-    
-    # 飞书 Webhook
-    feishu_webhook_url: Optional[str] = None
-    
+
+    # 自选股列表（从环境变量 STOCK_LIST 加载）
+    stock_list: List[str] = field(default_factory=list)
+
     # Telegram 配置（需要同时配置 Bot Token 和 Chat ID）
     telegram_bot_token: Optional[str] = None  # Bot Token（@BotFather 获取）
     telegram_chat_id: Optional[str] = None  # Chat ID
@@ -101,10 +88,6 @@ class Config:
     email_sender_name: str = "raise股票分析助手"  # 发件人显示名称
     email_password: Optional[str] = None  # 邮箱密码/授权码
     email_receivers: List[str] = field(default_factory=list)  # 收件人列表（留空则发给自己）
-    
-    # Pushover 配置（手机/桌面推送通知）
-    pushover_user_key: Optional[str] = None  # 用户 Key（https://pushover.net 获取）
-    pushover_api_token: Optional[str] = None  # 应用 API Token
     
     # 自定义 Webhook（支持多个，逗号分隔）
     # 适用于：钉钉、Discord、Slack、自建服务等任意支持 POST JSON 的 Webhook
@@ -126,19 +109,8 @@ class Config:
     # 报告类型：simple(精简) 或 full(完整)
     report_type: str = "simple"
 
-    # PushPlus 推送配置
-    pushplus_token: Optional[str] = None  # PushPlus Token
-
-    # Server酱3 推送配置
-    serverchan3_sendkey: Optional[str] = None  # Server酱3 SendKey
-
     # 分析间隔时间（秒）- 用于避免API限流
     analysis_delay: float = 0.0  # 个股分析与大盘分析之间的延迟
-
-    # 消息长度限制（字节）- 超长自动分批发送
-    feishu_max_bytes: int = 20000  # 飞书限制约 20KB，默认 20000 字节
-    wechat_max_bytes: int = 4000   # 企业微信限制 4096 字节，默认 4000 字节
-    wechat_msg_type: str = "markdown"  # 企业微信消息类型，默认 markdown 类型
     
     # === 数据库配置 ===
     database_url: Optional[str] = None
@@ -220,27 +192,8 @@ class Config:
     bot_rate_limit_window: int = 60       # 频率限制：窗口时间（秒）
     bot_admin_users: List[str] = field(default_factory=list)  # 管理员用户 ID 列表
     
-    # 飞书机器人（事件订阅）- 已有 feishu_app_id, feishu_app_secret
-    feishu_verification_token: Optional[str] = None  # 事件订阅验证 Token
-    feishu_encrypt_key: Optional[str] = None         # 消息加密密钥（可选）
-    feishu_stream_enabled: bool = False              # 是否启用 Stream 长连接模式（无需公网IP）
-    
-    # 钉钉机器人
-    dingtalk_app_key: Optional[str] = None      # 应用 AppKey
-    dingtalk_app_secret: Optional[str] = None   # 应用 AppSecret
-    dingtalk_stream_enabled: bool = False       # 是否启用 Stream 模式（无需公网IP）
-    
-    # 企业微信机器人（回调模式）
-    wecom_corpid: Optional[str] = None              # 企业 ID
-    wecom_token: Optional[str] = None               # 回调 Token
-    wecom_encoding_aes_key: Optional[str] = None    # 消息加解密密钥
-    wecom_agent_id: Optional[str] = None            # 应用 AgentId
-    
     # Telegram 机器人 - 已有 telegram_bot_token, telegram_chat_id
     telegram_webhook_secret: Optional[str] = None   # Webhook 密钥
-    
-    # Discord 机器人扩展配置
-    discord_bot_status: str = "A股智能分析 | /help"  # 机器人状态信息
     
     # 单例实例存储
     _instance: Optional['Config'] = None
@@ -339,21 +292,8 @@ class Config:
         brave_keys_str = os.getenv('BRAVE_API_KEYS', '')
         brave_api_keys = [k.strip() for k in brave_keys_str.split(',') if k.strip()]
 
-        # 企微消息类型与最大字节数逻辑
-        wechat_msg_type = os.getenv('WECHAT_MSG_TYPE', 'markdown')
-        wechat_msg_type_lower = wechat_msg_type.lower()
-        wechat_max_bytes_env = os.getenv('WECHAT_MAX_BYTES')
-        if wechat_max_bytes_env not in (None, ''):
-            wechat_max_bytes = int(wechat_max_bytes_env)
-        else:
-            # 未显式配置时，根据消息类型选择默认字节数
-            wechat_max_bytes = 2048 if wechat_msg_type_lower == 'text' else 4000
-        
         return cls(
             stock_list=stock_list,
-            feishu_app_id=os.getenv('FEISHU_APP_ID'),
-            feishu_app_secret=os.getenv('FEISHU_APP_SECRET'),
-            feishu_folder_token=os.getenv('FEISHU_FOLDER_TOKEN'),
             tushare_token=os.getenv('TUSHARE_TOKEN'),
             gemini_api_key=os.getenv('GEMINI_API_KEY'),
             gemini_model=os.getenv('GEMINI_MODEL', 'gemini-3-flash-preview'),
@@ -370,8 +310,6 @@ class Config:
             tavily_api_keys=tavily_api_keys,
             brave_api_keys=brave_api_keys,
             serpapi_keys=serpapi_keys,
-            wechat_webhook_url=os.getenv('WECHAT_WEBHOOK_URL'),
-            feishu_webhook_url=os.getenv('FEISHU_WEBHOOK_URL'),
             telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN'),
             telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID'),
             telegram_message_thread_id=os.getenv('TELEGRAM_MESSAGE_THREAD_ID'),
@@ -379,10 +317,6 @@ class Config:
             email_sender_name=os.getenv('EMAIL_SENDER_NAME', 'raise股票分析助手'),
             email_password=os.getenv('EMAIL_PASSWORD'),
             email_receivers=[r.strip() for r in os.getenv('EMAIL_RECEIVERS', '').split(',') if r.strip()],
-            pushover_user_key=os.getenv('PUSHOVER_USER_KEY'),
-            pushover_api_token=os.getenv('PUSHOVER_API_TOKEN'),
-            pushplus_token=os.getenv('PUSHPLUS_TOKEN'),
-            serverchan3_sendkey=os.getenv('SERVERCHAN3_SENDKEY'),
             custom_webhook_urls=[u.strip() for u in os.getenv('CUSTOM_WEBHOOK_URLS', '').split(',') if u.strip()],
             custom_webhook_bearer_token=os.getenv('CUSTOM_WEBHOOK_BEARER_TOKEN'),
             discord_bot_token=os.getenv('DISCORD_BOT_TOKEN'),
@@ -393,9 +327,6 @@ class Config:
             single_stock_notify=os.getenv('SINGLE_STOCK_NOTIFY', 'false').lower() == 'true',
             report_type=os.getenv('REPORT_TYPE', 'simple').lower(),
             analysis_delay=float(os.getenv('ANALYSIS_DELAY', '0')),
-            feishu_max_bytes=int(os.getenv('FEISHU_MAX_BYTES', '20000')),
-            wechat_max_bytes=wechat_max_bytes,
-            wechat_msg_type=wechat_msg_type_lower,
             database_url=os.getenv('DATABASE_URL'),
             database_path=os.getenv('DATABASE_PATH', './data/raise.db'),
             save_context_snapshot=os.getenv('SAVE_CONTEXT_SNAPSHOT', 'true').lower() == 'true',
@@ -422,19 +353,6 @@ class Config:
             bot_rate_limit_requests=int(os.getenv('BOT_RATE_LIMIT_REQUESTS', '10')),
             bot_rate_limit_window=int(os.getenv('BOT_RATE_LIMIT_WINDOW', '60')),
             bot_admin_users=[u.strip() for u in os.getenv('BOT_ADMIN_USERS', '').split(',') if u.strip()],
-            # 飞书机器人
-            feishu_verification_token=os.getenv('FEISHU_VERIFICATION_TOKEN'),
-            feishu_encrypt_key=os.getenv('FEISHU_ENCRYPT_KEY'),
-            feishu_stream_enabled=os.getenv('FEISHU_STREAM_ENABLED', 'false').lower() == 'true',
-            # 钉钉机器人
-            dingtalk_app_key=os.getenv('DINGTALK_APP_KEY'),
-            dingtalk_app_secret=os.getenv('DINGTALK_APP_SECRET'),
-            dingtalk_stream_enabled=os.getenv('DINGTALK_STREAM_ENABLED', 'false').lower() == 'true',
-            # 企业微信机器人
-            wecom_corpid=os.getenv('WECOM_CORPID'),
-            wecom_token=os.getenv('WECOM_TOKEN'),
-            wecom_encoding_aes_key=os.getenv('WECOM_ENCODING_AES_KEY'),
-            wecom_agent_id=os.getenv('WECOM_AGENT_ID'),
             # Telegram
             telegram_webhook_secret=os.getenv('TELEGRAM_WEBHOOK_SECRET'),
             # Discord 机器人扩展配置
@@ -548,16 +466,12 @@ class Config:
         
         # 检查通知配置
         has_notification = (
-            self.wechat_webhook_url or
-            self.feishu_webhook_url or
             (self.telegram_bot_token and self.telegram_chat_id) or
             (self.email_sender and self.email_password) or
-            (self.pushover_user_key and self.pushover_api_token) or
-            self.pushplus_token or
-            self.serverchan3_sendkey or
-            (self.custom_webhook_urls and self.custom_webhook_bearer_token) or
+            (self.custom_webhook_urls and len(self.custom_webhook_urls) > 0) or
             (self.discord_bot_token and self.discord_main_channel_id) or
-            self.discord_webhook_url
+            self.discord_webhook_url or
+            (self.astrbot_url and self.astrbot_token)
         )
         if not has_notification:
             warnings.append("提示：未配置通知渠道，将不发送推送通知")

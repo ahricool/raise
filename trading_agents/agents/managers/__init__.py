@@ -1,1 +1,4 @@
-# trading_agents/agents/managers
+# -*- coding: utf-8 -*-
+"""
+投资组合经理 Agent：在风控多方意见之后汇总为最终信号与仓位建议。
+"""

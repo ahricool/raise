@@ -1,1 +1,4 @@
-# trading_agents/agents/researchers
+# -*- coding: utf-8 -*-
+"""
+多空研究员 Agent：分别站在多头/空头立场撰写论据，驱动辩论环节。
+"""

@@ -62,6 +62,7 @@ class RaiseLLMClient:
         """
         temp = temperature if temperature is not None else self.temperature
 
+        # 先走 Gemini（与主分析器一致），失败再 OpenAI 兼容接口
         if self._gemini_client:
             result = self._call_gemini(system_prompt, user_prompt, temp)
             if result:
@@ -90,11 +91,13 @@ class RaiseLLMClient:
                     generation_config=genai.types.GenerationConfig(temperature=temperature),
                 )
                 if response and response.text:
+                    # 成功后仍 sleep：多 Agent 连续节点调用时降低瞬时 QPS，减轻 429
                     time.sleep(self.config.gemini_request_delay)
                     return response.text.strip()
             except Exception as e:
                 err = str(e)
                 if "429" in err or "quota" in err.lower():
+                    # 指数退避：限流时拉长等待，避免雪崩式重试
                     wait = retry_delay * (2 ** attempt)
                     logger.warning(f"Gemini 限流，等待 {wait:.0f}s 后重试 (attempt {attempt + 1})")
                     time.sleep(wait)
