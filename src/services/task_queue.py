@@ -123,7 +123,7 @@ class AnalysisTaskQueue:
                     cls._instance = super().__new__(cls)
         return cls._instance
     
-    def __init__(self, max_workers: int = 3):
+    def __init__(self, max_workers: int = 10):
         # 防止重复初始化
         if hasattr(self, '_initialized') and self._initialized:
             return

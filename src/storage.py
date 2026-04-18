@@ -1062,7 +1062,7 @@ class DatabaseManager:
         recent_data = self.get_latest_data(code, days=2)
         
         if not recent_data:
-            logger.warning(f"未找到 {code} 的数据")
+            logger.warning(f"未找到 {code} 的最近两天的数据")
             return None
         
         today_data = recent_data[0]

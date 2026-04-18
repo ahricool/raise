@@ -118,12 +118,13 @@ class StockAnalysisPipeline:
             Tuple[是否成功, 错误信息]
         """
         try:
-            today = date.today()
-            
-            # 断点续传检查：如果今日数据已存在，跳过
-            if not force_refresh and self.db.has_today_data(code, today):
-                logger.info(f"[{code}] 今日数据已存在，跳过获取（断点续传）")
-                return True, None
+
+            # 避免请求到盘中的数据，导致数据无法刷新，注释掉这部分
+            # today = date.today()
+            # # 断点续传检查：如果今日数据已存在，跳过
+            # if not force_refresh and self.db.has_today_data(code, today):
+            #     logger.info(f"[{code}] 今日数据已存在，跳过获取（断点续传）")
+            #     return True, None
             
             # 从数据源获取数据
             logger.info(f"[{code}] 开始从数据源获取数据...")
@@ -205,6 +206,7 @@ class StockAnalysisPipeline:
             trend_result: Optional[TrendAnalysisResult] = None
             try:
                 # 获取历史数据进行趋势分析
+                # FIXME：这里只获取最近两天的数据进行分析，为什么这样做？
                 context = self.db.get_analysis_context(code)
                 if context and 'raw_data' in context:
                     import pandas as pd
@@ -547,9 +549,11 @@ class StockAnalysisPipeline:
         logger.info(f"========== 开始处理 {code} ==========")
         
         try:
-            # Step 1: 获取并保存数据
+            # Step 1: 获取并保存数据，日线级别的历史数据，实时数据会在 analyze_stock 中获取
             success, error = self.fetch_and_save_stock_data(code)
             
+
+            # FIXME：这段逻辑似乎没有必要
             if not success:
                 logger.warning(f"[{code}] 数据获取失败: {error}")
                 # 即使获取失败，也尝试用已有数据分析
