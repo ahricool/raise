@@ -62,7 +62,7 @@ class NewsIntelStorageTestCase(unittest.TestCase):
         query_context = {
             "query_id": "task_001",
             "query_source": "bot",
-            "requester_platform": "feishu",
+            "requester_platform": "telegram",
             "requester_user_id": "u_123",
             "requester_user_name": "测试用户",
             "requester_chat_id": "c_456",

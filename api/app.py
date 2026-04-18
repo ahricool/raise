@@ -30,7 +30,6 @@ from api.v1 import api_v1_router
 from api.middlewares.error_handler import add_error_handlers
 from api.v1.schemas.common import RootResponse, HealthResponse
 from src.config import get_config
-from src.services.system_config_service import SystemConfigService
 from src.services.schedule_service import SchedulerService
 
 
@@ -38,8 +37,6 @@ from src.services.schedule_service import SchedulerService
 async def app_lifespan(app: FastAPI):
     """Initialize and release shared services for the app lifecycle."""
     # app.state 是 FastAPI 的上下文对象，用于存储应用程序状态
-    app.state.system_config_service = SystemConfigService()
-
     # Initialize DatabaseManager at startup so first request does not race with lazy init
     from src.storage import DatabaseManager
     DatabaseManager.get_instance()
@@ -57,8 +54,6 @@ async def app_lifespan(app: FastAPI):
         yield
     finally:
         scheduler.stop()
-        if hasattr(app.state, "system_config_service"):
-            delattr(app.state, "system_config_service")
 
 
 def create_app(static_dir: Optional[Path] = None) -> FastAPI:
@@ -77,43 +72,14 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
     
     # 创建 FastAPI 实例
     app = FastAPI(
-        title="Daily Stock Analysis API",
-        description=(
-            "A股/港股/美股自选股智能分析系统 API\n\n"
-            "## 功能模块\n"
-            "- 股票分析：触发 AI 智能分析\n"
-            "- 历史记录：查询历史分析报告\n"
-            "- 股票数据：获取行情数据\n\n"
-            "## 认证方式\n"
-            "当前版本暂无认证要求"
-        ),
-        version="1.0.0",
+        title="Data AI Analysis System",
+        version="1.1.0",
         lifespan=app_lifespan,
     )
     
-    # ============================================================
-    # CORS 配置
-    # ============================================================
-    
-    allowed_origins = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
-    
-    # 从环境变量添加额外的允许来源
-    extra_origins = os.environ.get("CORS_ORIGINS", "")
-    if extra_origins:
-        allowed_origins.extend([o.strip() for o in extra_origins.split(",") if o.strip()])
-    
-    # 允许所有来源（开发/演示用）
-    if os.environ.get("CORS_ALLOW_ALL", "").lower() == "true":
-        allowed_origins = ["*"]
-    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

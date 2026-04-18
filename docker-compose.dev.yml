@@ -33,6 +33,7 @@ services:
       - ./api:/workspace/api
       - ./src:/workspace/src
       - ./bot:/workspace/bot
+      - ./trading_agents:/workspace/trading_agents
       - ./data_provider:/workspace/data_provider
       - ./static:/workspace/static
       - ./data:/workspace/data

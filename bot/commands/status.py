@@ -76,10 +76,12 @@ class StatusCommand(BotCommand):
         status["search_serpapi"] = len(config.serpapi_keys) > 0
         
         # 通知渠道状态
-        status["notify_wechat"] = bool(config.wechat_webhook_url)
-        status["notify_feishu"] = bool(config.feishu_webhook_url)
         status["notify_telegram"] = bool(config.telegram_bot_token and config.telegram_chat_id)
         status["notify_email"] = bool(config.email_sender and config.email_password)
+        status["notify_discord"] = bool(
+            config.discord_webhook_url
+            or (config.discord_bot_token and config.discord_main_channel_id)
+        )
         
         return status
     
@@ -120,10 +122,9 @@ class StatusCommand(BotCommand):
             f"• SerpAPI: {icon(status['search_serpapi'])}",
             "",
             "**📢 通知渠道**",
-            f"• 企业微信: {icon(status['notify_wechat'])}",
-            f"• 飞书: {icon(status['notify_feishu'])}",
             f"• Telegram: {icon(status['notify_telegram'])}",
             f"• 邮件: {icon(status['notify_email'])}",
+            f"• Discord: {icon(status['notify_discord'])}",
         ])
         
         # AI 服务总体状态

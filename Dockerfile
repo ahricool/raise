@@ -46,6 +46,7 @@ COPY *.py ./
 COPY api/ ./api/
 COPY data_provider/ ./data_provider/
 COPY bot/ ./bot/
+COPY trading_agents/ ./trading_agents/
 COPY src/ ./src/
 
 # Copy built frontend
