@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Integration tests for backtest service and repository.
+"""
+回测服务集成测试（BacktestService + Repository）
 
-These tests run against a temporary SQLite DB (same approach as other tests)
-and validate idempotency/force semantics, result field correctness,
-summary creation, and query methods.
+使用临时 SQLite，与线上一致的环境变量方式，验证：
+幂等/强制重跑语义、回测结果字段、汇总行生成、查询接口等。
 """
 
 import os

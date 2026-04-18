@@ -4,8 +4,8 @@
 API v1 Endpoints 模块初始化
 ===================================
 
-职责：
-1. 导出所有 endpoint 路由模块
+说明：此处仅导出部分子模块，便于 `from api.v1.endpoints import X` 的兼容用法。
+实际路由聚合见 `api.v1.router`（另含 watchlist、bot、multi_agent 等）。
 """
 
 from api.v1.endpoints import health, analysis, history, stocks, backtest

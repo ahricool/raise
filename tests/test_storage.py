@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+storage 模块单元测试
+
+覆盖 `DatabaseManager._parse_sniper_value` 等纯函数逻辑，重点验证：
+从含「元」、MA 均线等干扰文本中正确抽取狙击价位（回测与展示依赖该解析）。
+"""
+
 import unittest
 import sys
 import os

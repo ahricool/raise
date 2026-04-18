@@ -1,1 +1,4 @@
-# trading_agents/agents/risk_mgmt
+# -*- coding: utf-8 -*-
+"""
+风控 Agent 变体：激进 / 中性 / 保守 三种立场并行产出，供组合经理权衡。
+"""

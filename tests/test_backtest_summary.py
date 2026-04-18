@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Unit tests for BacktestEngine.compute_summary()."""
+"""
+回测汇总指标单元测试（BacktestEngine.compute_summary）
+
+用伪造行对象检验胜率、中性率、方向准确率等聚合是否与业务定义一致。
+"""
 
 import unittest
 from dataclasses import dataclass
