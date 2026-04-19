@@ -32,12 +32,13 @@
 from .base import BaseFetcher, DataFetcherManager
 from .efinance_fetcher import EfinanceFetcher
 from .akshare_fetcher import AkshareFetcher
-from .tushare_fetcher import TushareFetcher
+from .tushare_fetcher import TushareFetcher, _is_hk_code as is_hk_stock_code
 from .pytdx_fetcher import PytdxFetcher
 from .baostock_fetcher import BaostockFetcher
 from .yfinance_fetcher import YfinanceFetcher
 from .longbridge_fetcher import LongBridgeFetcher
 from .tickflow_fetcher import TickFlowFetcher
+from .us_index_mapping import is_us_index_code, is_us_stock_code, get_us_index_yf_symbol, US_INDEX_MAPPING
 
 __all__ = [
     'BaseFetcher',
@@ -50,4 +51,9 @@ __all__ = [
     'YfinanceFetcher',
     'LongBridgeFetcher',
     'TickFlowFetcher',
+    'is_hk_stock_code',
+    'is_us_stock_code',
+    'is_us_index_code',
+    'get_us_index_yf_symbol',
+    'US_INDEX_MAPPING',
 ]
