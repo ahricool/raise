@@ -28,6 +28,7 @@ from src.notification import NotificationService, NotificationChannel
 from src.search_service import SearchService
 from src.enums import ReportType
 from src.stock_analyzer import StockTrendAnalyzer, TrendAnalysisResult
+from src.core.trading_calendar import get_market_for_stock, get_market_now
 from bot.models import BotMessage
 
 
@@ -274,11 +275,11 @@ class StockAnalysisPipeline:
             
             if context is None:
                 logger.warning(f"[{code}] 无法获取历史行情数据，将仅基于新闻和实时行情分析")
-                from datetime import date
+                _mkt = get_market_for_stock(code)
                 context = {
                     'code': code,
                     'stock_name': stock_name,
-                    'date': date.today().isoformat(),
+                    'date': get_market_now(_mkt).date().isoformat(),
                     'data_missing': True,
                     'today': {},
                     'yesterday': {}
