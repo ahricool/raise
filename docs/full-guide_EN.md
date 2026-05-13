@@ -371,9 +371,9 @@ cp .env.example .env
 vim .env  # Fill in API Keys and configuration
 
 # 3. Start container
-docker-compose -f ./docker/docker-compose.yml up -d server     # Web service mode (recommended, provides API & WebUI)
-docker-compose -f ./docker/docker-compose.yml up -d analyzer   # Scheduled task mode
-docker-compose -f ./docker/docker-compose.yml up -d            # Start both modes
+docker-compose -f ./docker/docker-compose.yml up -d server     # Web service mode (recommended, provides API, WebUI, and PostgreSQL)
+docker-compose -f ./docker/docker-compose.yml up -d analyzer   # Scheduled task mode (waits for PostgreSQL health)
+docker-compose -f ./docker/docker-compose.yml up -d            # Start PostgreSQL and both app modes
 
 # 4. Access WebUI
 # http://localhost:8000
@@ -413,6 +413,8 @@ docker run -d \
 
 For pinned deployments or easier rollback, replace `latest` with a concrete version tag such as `v3.13.0`.
 
+> Note: `docker run` does not start PostgreSQL automatically. If `.env` keeps a PostgreSQL `DATABASE_URL`, prepare a reachable PostgreSQL instance first; otherwise clear `DATABASE_URL` to use the SQLite fallback pointed to by `DATABASE_PATH`.
+
 ### Run Mode Description
 
 | Command | Description | Port |
@@ -437,6 +439,7 @@ x-common: &common
     - ../.env
   environment:
     - TZ=Asia/Shanghai
+    - DATABASE_URL=${DATABASE_URL}
   volumes:
     - ../data:/app/data
     - ../logs:/app/logs
@@ -445,15 +448,32 @@ x-common: &common
     - ../strategies:/app/strategies:ro
 
 services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   # Scheduled task mode
   analyzer:
     <<: *common
     container_name: stock-analyzer
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # FastAPI mode
   server:
     <<: *common
     container_name: stock-server
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
@@ -915,11 +935,20 @@ Log file locations:
 
 Debug logs keep the app's own DEBUG messages, but LiteLLM internals default to `WARNING` to avoid token-level third-party noise during streaming generation. To inspect LiteLLM internals temporarily, set `LITELLM_LOG_LEVEL=DEBUG` in `.env`.
 
-### SQLite Write Stability
+### Database Configuration (PostgreSQL / SQLite Fallback)
 
-For file-based SQLite databases, the app now enables `WAL` and sets `busy_timeout` on connection startup. `save_daily_data()` also uses a batch atomic upsert on `(code, date)` to reduce lock contention during bulk writes and concurrent callbacks.
+Docker Compose starts PostgreSQL by default and the application connects to it through `DATABASE_URL` from `.env`. `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_PORT` are also read from `.env`. Change `POSTGRES_PASSWORD` before first deployment, and keep the credentials/database in `DATABASE_URL` aligned with the `POSTGRES_*` values.
 
-You can tune the behavior in `.env`:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql+psycopg2://...` | SQLAlchemy database URL; PostgreSQL is recommended for Docker Compose |
+| `POSTGRES_DB` | `daily_stock_analysis` | Compose PostgreSQL database name |
+| `POSTGRES_USER` | `dsa` | Compose PostgreSQL user |
+| `POSTGRES_PASSWORD` | `change_me_to_a_strong_password` | Compose PostgreSQL password; change before deployment |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port exposed on the host |
+| `DATABASE_PATH` | `./data/stock_analysis.db` | Local/desktop SQLite fallback path, used only when `DATABASE_URL` is empty |
+
+The SQLite fallback still keeps these stability settings for local tests and desktop usage:
 
 | Variable | Default | Description |
 |----------|---------|-------------|

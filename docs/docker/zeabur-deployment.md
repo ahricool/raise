@@ -129,7 +129,8 @@ Dockerfile 已采用多阶段构建，前端会在镜像构建时自动打包。
 |--------|------|--------|
 | `PYTHONUNBUFFERED` | 启用 Python 无缓冲输出 | `1` |
 | `LOG_DIR` | 日志目录 | `/app/logs` |
-| `DATABASE_PATH` | 数据库路径 | `/app/data/stock_analysis.db` |
+| `DATABASE_URL` | SQLAlchemy 数据库连接 URL（推荐 PostgreSQL） | `postgresql+psycopg2://...` |
+| `DATABASE_PATH` | SQLite 回退路径（仅 `DATABASE_URL` 为空时使用） | `/app/data/stock_analysis.db` |
 
 ### 5.2 API 服务配置
 

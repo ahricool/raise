@@ -407,9 +407,9 @@ cp .env.example .env
 vim .env  # 填入 API Key 和配置
 
 # 3. 启动容器
-docker-compose -f ./docker/docker-compose.yml up -d server     # Web 服务模式（推荐，提供 API 与 WebUI）
-docker-compose -f ./docker/docker-compose.yml up -d analyzer   # 定时任务模式
-docker-compose -f ./docker/docker-compose.yml up -d            # 同时启动两种模式
+docker-compose -f ./docker/docker-compose.yml up -d server     # Web 服务模式（推荐，提供 API、WebUI 与 PostgreSQL）
+docker-compose -f ./docker/docker-compose.yml up -d analyzer   # 定时任务模式（会等待 PostgreSQL 健康）
+docker-compose -f ./docker/docker-compose.yml up -d            # 同时启动 PostgreSQL 与两种应用模式
 
 # 4. 访问 WebUI
 # http://localhost:8000
@@ -449,6 +449,8 @@ docker run -d \
 
 如需固定版本或便于回滚，请将 `latest` 替换为具体版本 tag，例如 `v3.13.0`。
 
+> 注意：直接 `docker run` 不会自动启动 PostgreSQL。如果 `.env` 中保留 PostgreSQL `DATABASE_URL`，请先准备可访问的 PostgreSQL 实例；否则清空 `DATABASE_URL` 以使用 `DATABASE_PATH` 指向的 SQLite 回退。
+
 ### 运行模式说明
 
 | 命令 | 说明 | 端口 |
@@ -473,25 +475,44 @@ x-common: &common
     - ../.env
   environment:
     - TZ=Asia/Shanghai
+    - DATABASE_URL=${DATABASE_URL}
   volumes:
     - ../data:/app/data
     - ../logs:/app/logs
     - ../reports:/app/reports
     - ../.env:/app/.env
+    - ../strategies:/app/strategies:ro
 
 services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   # 定时任务模式
   analyzer:
     <<: *common
     container_name: stock-analyzer
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # FastAPI 模式
   server:
     <<: *common
     container_name: stock-server
-    command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
 ```
 
 ### `.env` 与数据目录映射说明
@@ -1056,14 +1077,23 @@ python main.py --debug
 
 调试日志默认保留项目自身 DEBUG 信息，但会将 LiteLLM 内部日志压低到 `WARNING`，避免流式生成时按 token 写入大量第三方调试日志；如需排查 LiteLLM 内部细节，可在 `.env` 中临时设置 `LITELLM_LOG_LEVEL=DEBUG`。
 
-### SQLite 写入稳态配置
+### 数据库配置（PostgreSQL / SQLite 回退）
 
-默认文件型 SQLite 会在连接建立时启用 `WAL` 并设置 `busy_timeout`，`save_daily_data()` 也已改为按 `(code, date)` 批量原子 upsert，以降低批量更新和并发回写时的锁竞争。
+Docker Compose 默认启动 PostgreSQL，并通过 `.env` 中的 `DATABASE_URL` 让应用连接该数据库；`POSTGRES_DB`、`POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_PORT` 等同样从 `.env` 读取。请在首次部署前修改 `POSTGRES_PASSWORD`，并保持 `DATABASE_URL` 中的账号、密码、主机和库名与 `POSTGRES_*` 一致。
 
-如需调整，可在 `.env` 中设置：
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `DATABASE_URL` | `postgresql+psycopg2://...` | SQLAlchemy 数据库连接 URL；Docker Compose 推荐使用 PostgreSQL |
+| `POSTGRES_DB` | `daily_stock_analysis` | Compose PostgreSQL 数据库名 |
+| `POSTGRES_USER` | `dsa` | Compose PostgreSQL 用户名 |
+| `POSTGRES_PASSWORD` | `change_me_to_a_strong_password` | Compose PostgreSQL 密码，部署前必须修改 |
+| `POSTGRES_PORT` | `5432` | 暴露到宿主机的 PostgreSQL 端口 |
+| `DATABASE_PATH` | `./data/stock_analysis.db` | 仅当 `DATABASE_URL` 为空时使用的本地/桌面端 SQLite 回退路径 |
 
-| 变量 | 默认值 | 说明 |
-|------|-------|------|
+SQLite 回退仍保留以下稳定性参数，便于本地测试和桌面端使用：
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
 | `SQLITE_WAL_ENABLED` | `true` | 文件型 SQLite 是否启用 `journal_mode=WAL` |
 | `SQLITE_BUSY_TIMEOUT_MS` | `5000` | SQLite 等锁超时（毫秒） |
 | `SQLITE_WRITE_RETRY_MAX` | `3` | 遇到 `database is locked` / `database table is locked` 时的最大重试次数 |

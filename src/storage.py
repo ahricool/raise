@@ -5,7 +5,7 @@ A股自选股智能分析系统 - 存储层
 ===================================
 
 职责：
-1. 管理 SQLite 数据库连接（单例模式）
+1. 管理 SQLAlchemy 数据库连接（单例模式，Docker 默认 PostgreSQL）
 2. 定义 ORM 数据模型
 3. 提供数据存取接口
 4. 实现智能更新逻辑（断点续传）
@@ -43,6 +43,7 @@ from sqlalchemy import (
     event,
     func,
 )
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import (
     declarative_base,
@@ -678,7 +679,9 @@ class DatabaseManager:
             db_url,
             **engine_kwargs,
         )
-        self._is_sqlite_engine = self._engine.url.get_backend_name() == 'sqlite'
+        self._backend_name = self._engine.url.get_backend_name()
+        self._is_sqlite_engine = self._backend_name == 'sqlite'
+        self._is_postgresql_engine = self._backend_name == 'postgresql'
         self._sqlite_file_db = self._is_sqlite_engine and self._is_file_sqlite_database()
         self._install_sqlite_pragma_handler()
         
@@ -1428,6 +1431,7 @@ class DatabaseManager:
         策略：
         - 按 `(code, date)` 做批量 UPSERT，已存在记录会覆盖更新
         - 同一批次内若存在重复日期，以最后一条记录为准
+        - PostgreSQL / SQLite 使用原生 ON CONFLICT 批量写入
         - SQLite 分支按 chunk 写入以避免绑定参数上限
         
         Args:
@@ -1472,13 +1476,15 @@ class DatabaseManager:
         batch_dates = list(records_by_date.keys())
 
         def _write(session: Session) -> int:
-            if self._is_sqlite_engine:
+            if self._is_sqlite_engine or self._is_postgresql_engine:
                 # SQLite has a per-statement bind-parameter limit (commonly 999).
-                # Each record has ~15 columns, so chunk upserts to stay within bounds.
-                _SQLITE_CHUNK = 50
+                # PostgreSQL accepts larger batches; keep SQLite chunked while
+                # allowing PostgreSQL to use one native ON CONFLICT statement.
+                chunk_size = 50 if self._is_sqlite_engine else len(records)
                 # `_run_write_transaction()` opens SQLite writes with
                 # `BEGIN IMMEDIATE`, so existence checks and upsert execute
-                # within one stable write window.
+                # within one stable write window. PostgreSQL runs in the normal
+                # transaction opened by SQLAlchemy.
                 existing_dates = set()
                 _COUNT_CHUNK = 500
                 for j in range(0, len(batch_dates), _COUNT_CHUNK):
@@ -1498,9 +1504,10 @@ class DatabaseManager:
                 new_records = [
                     record for record in records if record['date'] not in existing_dates
                 ]
-                for i in range(0, len(records), _SQLITE_CHUNK):
-                    chunk = records[i : i + _SQLITE_CHUNK]
-                    stmt = sqlite_insert(StockDaily).values(chunk)
+                insert_func = sqlite_insert if self._is_sqlite_engine else postgresql_insert
+                for i in range(0, len(records), chunk_size):
+                    chunk = records[i : i + chunk_size]
+                    stmt = insert_func(StockDaily).values(chunk)
                     excluded = stmt.excluded
                     session.execute(
                         stmt.on_conflict_do_update(
