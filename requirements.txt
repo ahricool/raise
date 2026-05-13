@@ -48,7 +48,8 @@ fake-useragent>=1.4.0       # 随机 User-Agent 防封禁
 httpx[socks]                # HTTP 客户端 + SOCKS 代理支持（OpenAI 可选依赖）
 dingtalk-stream >= 0.24.3    # 钉钉 Stream SDK
 # 数据库
-# SQLite 是 Python 内置，无需额外安装
+psycopg2-binary>=2.9.9       # PostgreSQL driver for SQLAlchemy
+# SQLite 是 Python 内置，保留用于本地/桌面端回退和测试
 
 # Discord 机器人
 discord.py>=2.0.0              # Discord 机器人开发库

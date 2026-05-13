@@ -2170,6 +2170,7 @@ class SystemConfigService:
     def _is_setup_relevant_env_key(key: str) -> bool:
         if key in {
             "STOCK_LIST",
+            "DATABASE_URL",
             "DATABASE_PATH",
             "LITELLM_CONFIG",
             "LITELLM_MODEL",
@@ -2575,6 +2576,28 @@ class SystemConfigService:
         )
 
     def _build_setup_storage_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        database_url = (effective_map.get("DATABASE_URL") or "").strip()
+        if database_url:
+            parsed = urlparse(database_url)
+            if parsed.scheme.startswith("postgresql") and parsed.hostname:
+                return self._setup_check(
+                    "storage",
+                    "数据库 / 本地存储",
+                    "system",
+                    True,
+                    "configured",
+                    f"已配置 PostgreSQL 数据库: {parsed.hostname}:{parsed.port or 5432}/{(parsed.path or '/').lstrip('/')}",
+                )
+            return self._setup_check(
+                "storage",
+                "数据库 / 本地存储",
+                "system",
+                True,
+                "needs_action",
+                "DATABASE_URL 格式不可识别或缺少主机名。",
+                "请配置 postgresql+psycopg2://user:password@host:5432/dbname，或清空 DATABASE_URL 使用 DATABASE_PATH。",
+            )
+
         db_path = Path((effective_map.get("DATABASE_PATH") or "./data/stock_analysis.db").strip()).expanduser()
         parent = db_path.parent if db_path.parent != Path("") else Path(".")
         probe = parent

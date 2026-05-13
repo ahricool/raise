@@ -16,6 +16,26 @@ class ConfigEnvCompatibilityTestCase(unittest.TestCase):
 
     @patch("src.config.setup_env")
     @patch.object(Config, "_parse_litellm_yaml", return_value=[])
+    def test_database_url_overrides_legacy_sqlite_path(
+        self, _mock_parse_litellm_yaml, _mock_setup_env
+    ):
+        db_url = "postgresql+psycopg2://dsa:secret@postgres:5432/daily_stock_analysis"
+        with patch.dict(
+            os.environ,
+            {
+                "STOCK_LIST": "600519",
+                "DATABASE_URL": db_url,
+                "DATABASE_PATH": "/tmp/ignored.db",
+            },
+            clear=True,
+        ):
+            config = Config._load_from_env()
+
+        self.assertEqual(config.database_url, db_url)
+        self.assertEqual(config.get_db_url(), db_url)
+
+    @patch("src.config.setup_env")
+    @patch.object(Config, "_parse_litellm_yaml", return_value=[])
     def test_load_from_env_reads_tickflow_api_key(
         self, _mock_parse_litellm_yaml, _mock_setup_env
     ):

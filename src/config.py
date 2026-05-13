@@ -847,7 +847,8 @@ class Config:
     prefetch_realtime_quotes: bool = True
 
     # === 数据库配置 ===
-    database_path: str = "./data/stock_analysis.db"
+    database_url: Optional[str] = None
+    database_path: str = "./data/stock_analysis.db"  # Legacy SQLite/local file path fallback
     sqlite_wal_enabled: bool = True
     sqlite_busy_timeout_ms: int = 5000
     sqlite_write_retry_max: int = 3
@@ -1584,6 +1585,7 @@ class Config:
             ),
             md2img_engine=cls._parse_md2img_engine(os.getenv('MD2IMG_ENGINE', 'wkhtmltoimage')),
             prefetch_realtime_quotes=os.getenv('PREFETCH_REALTIME_QUOTES', 'true').lower() == 'true',
+            database_url=(os.getenv('DATABASE_URL') or '').strip() or None,
             database_path=os.getenv('DATABASE_PATH', './data/stock_analysis.db'),
             sqlite_wal_enabled=os.getenv('SQLITE_WAL_ENABLED', 'true').lower() == 'true',
             sqlite_busy_timeout_ms=parse_env_int(
@@ -2687,10 +2689,14 @@ class Config:
     
     def get_db_url(self) -> str:
         """
-        获取 SQLAlchemy 数据库连接 URL
-        
-        自动创建数据库目录（如果不存在）
+        获取 SQLAlchemy 数据库连接 URL。
+
+        优先使用 DATABASE_URL（例如 PostgreSQL），未配置时保留
+        DATABASE_PATH 的 SQLite 文件回退以兼容本地/桌面端和测试场景。
         """
+        if self.database_url:
+            return self.database_url
+
         db_path = Path(self.database_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{db_path.absolute()}"

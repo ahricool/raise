@@ -34,6 +34,8 @@ x-common: &common
 
     # Web/API service bind address (must be 0.0.0.0 inside container)
     - WEBUI_HOST=0.0.0.0
+    # DATABASE_URL 从 .env 读取；请保持其与 POSTGRES_* 配置一致
+    - DATABASE_URL=${DATABASE_URL}
     # API_PORT 从 .env 文件读取，无需在此硬编码
 
     # 代理设置（如果需要）
@@ -53,16 +55,45 @@ x-common: &common
         memory: 256M
 
 services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16-alpine}
+    container_name: stock-postgres
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # 定时任务模式
   analyzer:
     <<: *common
     container_name: stock-analyzer
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # FastAPI 模式
   server:
     <<: *common
     container_name: stock-server
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: ["python", "main.py", "--serve-only", "--host", "0.0.0.0", "--port", "${API_PORT:-8000}"]
     # 若使用 network_mode: host，则以下 ports 映射无效，端口由 command 中的 --port 指定
     ports:
       - "${API_PORT:-8000}:${API_PORT:-8000}"
+
+volumes:
+  postgres_data:
